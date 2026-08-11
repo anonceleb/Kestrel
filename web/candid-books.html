@@ -24,6 +24,8 @@
   .gap h3{margin:0; font-size:15px;}
   .badge{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:4px 10px; white-space:nowrap;}
   .badge.closed{color:#fff; background:var(--ok);}
+  .badge.interface{color:#fff; background:#8a6d1f;}
+  .badge.satisfied{color:#fff; background:#3a6ea5;}
   .gap .desc{font-size:13.5px; color:var(--ink-soft); line-height:1.65; margin:10px 0 8px;}
   .gap a.test{font-size:12.5px; font-family:monospace; color:var(--red);}
   .open{border:1px solid #e3b3ba; background:#fdf3f4; padding:20px 22px; margin-bottom:14px;}
@@ -76,6 +78,26 @@
     <div class="head"><h3>5. Platform-side cross-merchant correlation</h3><span class="badge closed">CLOSED</span></div>
     <p class="desc">Was: <code>ConsentEntry.subject</code> was a stable root-identity reference, visible to Platform across every consent entry regardless of counterparty — Platform itself could correlate a subject by comparing <code>subject</code> values, the exact correlation pairwise IDs exist to prevent for merchants. Now: <code>subject</code> is a pairwise reference, derived per-counterparty. Two entries for the same real subject under different counterparties share no comparable value.</p>
     <a class="test" href="../tests/grant-core/gap-fixes.test.ts">tests/grant-core/gap-fixes.test.ts — INV-33</a>
+  </div>
+
+  <h2 class="section">§3.1 — Beckn alignment constraints (added after founder review — binding)</h2>
+  <p class="lede" style="margin-bottom:22px;">Three requirements added to the build prompt after this demo first shipped. All three are now addressed; the middle one honestly, not by pretending a live integration exists.</p>
+
+  <div class="gap">
+    <div class="head"><h3>3.1.1 Registry as a Beckn network-registry client</h3><span class="badge closed">CLOSED</span></div>
+    <p class="desc">Was: a self-minted Ed25519 registry — its own <code>participantId</code>, its own trust anchor, no relationship to Beckn's actual subscriber convention. Now: identity is <code>subscriberId</code> (FQDN-shaped, per Beckn's subscriber_id convention), envelopes carry Beckn's real wire format — <code>keyId="{subscriberId}|{keyId}|ed25519"</code>, digest is a BLAKE2b-512 hash of the canonical body ("BLAKE-512"), signing string is the exact <code>(created)/(expires)/digest:</code> shape published at developers.becknprotocol.io. <code>Registry</code>'s docstring now frames it explicitly as simulating a real Beckn network registry's subscribe/lookup wire protocol in-process — a real deployment swaps the in-memory map for HTTP calls with zero change to envelope generation/verification.</p>
+    <a class="test" href="../tests/grant-core/beckn-envelope.test.ts">tests/grant-core/beckn-envelope.test.ts — INV-34</a>
+  </div>
+
+  <div class="gap">
+    <div class="head"><h3>3.1.2 DeDi (dedi.global) directory integration</h3><span class="badge interface">CLOSED — AS INTERFACE</span></div>
+    <p class="desc">Was: no DeDi interface anywhere. Now: <code>packages/directory/src/directory.ts</code> defines <code>DeDiDirectoryPort</code> — publish/lookup for operator label-signing keys, capability/subscriber revocations, and signed disclosure-policy entries — wired so it's actually exercised: <code>OperatorKeyring.rotate()</code>, <code>Registry.suspend()</code>, <code>NonceLedger.revoke()</code>, and <code>PolicyStore.reload()</code> all publish through it. <strong>Stated plainly, here and in the file's own header comment: <code>InProcessDirectory</code> is an in-memory demo backend, not a live dedi.global integration.</strong> DeDi requires network/chain calls, which conflicts with this repo's "runs entirely offline" property — the interface is the honest shape of what a real integration would implement; nothing here talks to dedi.global's actual REST API.</p>
+    <a class="test" href="../tests/grant-core/directory-port.test.ts">tests/grant-core/directory-port.test.ts — INV-35</a>
+  </div>
+
+  <div class="gap">
+    <div class="head"><h3>3.1.3 No-discovery boundary stated explicitly</h3><span class="badge satisfied">SATISFIED</span></div>
+    <p class="desc">Was already true — no search/catalog/matching code exists anywhere in this repo — but the README didn't say so in as many words. Now it does: see the <a href="../README.md#scope-where-cfp-begins">"Scope: where CFP begins"</a> section — CFP begins after discovery; every flow starts from an already-formed order/grant context.</p>
   </div>
 
   <h2 class="section">Still open — pilot scope</h2>

@@ -135,6 +135,47 @@ deployment needs, not yet built:
   same portability commitment payment tokenization made structural.
   Committed here as a v0.1 design constraint; not yet implemented.
 
+## 7a. Registry & directory — subscriber identity and the DeDi-shaped interface
+
+`packages/registry` (`Registry`, `signRequest`, `SignedEnvelope`) is a
+**Beckn network-registry client**, not a self-minted identity scheme.
+Participants are identified by `subscriberId` (FQDN-shaped, per Beckn's
+subscriber_id convention — e.g. `merchant.example.org`), and every signed
+envelope follows Beckn's actual wire format:
+
+- `keyId="{subscriberId}|{uniqueKeyId}|ed25519"`
+- digest: BLAKE2b-512 hash of the canonical request body, base64-encoded
+  (Beckn's "BLAKE-512")
+- signing string, exactly: `(created): {v}\n(expires): {v}\ndigest: BLAKE-512={digest}`
+
+`Registry` in this repo **simulates that wire protocol in-process** — an
+in-memory map standing in for the registry's subscribe/lookup HTTP surface.
+A real deployment swaps the map for network calls to the network's actual
+registry; envelope generation and verification do not change at all when
+that swap happens. The scheme name Beckn uses is "XEd25519," but for a key
+pair generated directly as Ed25519 (never derived from an X25519 key —
+the case this demo and most real Beckn/ONDC deployments use), XEdDSA and
+plain EdDSA produce identical signatures, so Node's native Ed25519
+sign/verify is a faithful implementation of that genesis-key case. See
+`packages/registry/src/signing.ts`'s module docstring for the full
+reasoning and its explicit boundary (it does not claim to implement the
+general X25519-key-conversion case).
+
+Alongside the registry, `packages/directory` defines `DeDiDirectoryPort` —
+an interface for publishing and looking up operator/label signing keys,
+capability and subscriber revocations, and signed disclosure-policy
+entries, modeled on DeDi (dedi.global, an LF Decentralized Trust project)'s
+three directory-protocol concerns. **The only implementation shipped here,
+`InProcessDirectory`, is an in-memory demo backend — explicitly not a live
+dedi.global integration.** DeDi is a network/chain-backed directory
+protocol; calling it live would break this repo's "runs entirely offline"
+property, so the interface is wired in (`OperatorKeyring.rotate()`,
+`Registry.suspend()`, `NonceLedger.revoke()`, and `PolicyStore.reload()`
+all publish through it, independently verifiable by reading the same
+interface back) without a network dependency. A real deployment implements
+`DeDiDirectoryPort` against dedi.global's REST API instead; every call site
+above depends only on the interface, not on `InProcessDirectory`.
+
 ## 8. Stewardship — the date-certain transfer clause
 
 The grant-core invariant suite (`tests/grant-core/`) is donated under open

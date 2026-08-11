@@ -58,13 +58,29 @@ its second.
   browser, and a candid-books page states what's closed, what's still open,
   and the stewardship commitment verbatim.
 
+## Scope: where CFP begins
+
+CFP begins **after discovery.** There is no search, catalog, matching, or
+`select`/`on_select`-shaped code anywhere in this repo — every flow here
+starts from an already-formed order/grant context (a merchant already knows
+what a subject bought and needs to fulfil it). Finding a merchant, a
+product, or an operator is out of scope by design, not by omission: the
+primitive this repo donates is the confidential-fulfilment grant that kicks
+in once discovery has already happened, wherever it happens. See
+`web/candid-books.html` for the closed/open status of every other boundary
+this repo draws.
+
 ## What's here
 
 ```
 packages/
   crypto/      envelope encryption (ChaCha20-Poly1305), HKDF record keys, crypto-shredding
   identity/    pairwise ID derivation — stable per counterparty, unlinkable across counterparties
-  registry/    Ed25519 request signing + participant registry (ONDC/Beckn shape), authorized writes
+  registry/    Beckn network-registry client: subscriber_id identity, XEd25519/BLAKE-512 signed
+               envelopes, authorized writes — simulates a real Beckn registry's subscribe/lookup
+               wire protocol in-process (see the module docstring for what a live swap requires)
+  directory/   DeDi-shaped key/revocation/policy directory port — an in-memory demo backend behind
+               the DeDiDirectoryPort interface, explicitly NOT a live dedi.global integration
   capability/  scoped, expiring, single-use, attenuable FulfilmentGrant tokens
   labels/      COSE_Sign1 offline-verifiable redemption artifacts + rotating operator keys
   policy/      signed, versioned, hot-reloadable disclosure policy — no self-signed default
