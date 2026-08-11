@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFP — Profile: Address (India Post)</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
+    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --ok:#1F6F43; --divider:rgba(22,22,22,.14);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
+  .mark{font-weight:800; font-size:18px;} .mark span{color:var(--red);}
+  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:18px;}
+  .wrap{max-width:960px; margin:0 auto; padding:56px 24px 90px;}
+  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; gap:8px; margin-bottom:20px; border:1px solid var(--red); padding:6px 12px;}
+  h1{font-size:clamp(26px,4.4vw,36px); margin:0 0 14px; max-width:26ch;}
+  p.lede{font-size:15px; line-height:1.65; color:var(--ink-soft); max-width:66ch; margin:0 0 40px;}
+  h2.section{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); border-top:1px solid var(--divider); padding-top:36px; margin:44px 0 18px;}
+  .flow{display:flex; gap:0; overflow-x:auto; border:1px solid var(--divider); background:var(--bg-raised);}
+  .hop{flex:1; min-width:150px; padding:16px; border-right:1px solid var(--divider); font-size:12.5px;}
+  .hop:last-child{border-right:none;}
+  .hop .who{font-weight:700; margin-bottom:6px;}
+  .hop .what{color:var(--ink-soft); line-height:1.5;}
+  .hop .plain{color:var(--red); font-size:11px; margin-top:8px; font-weight:600;}
+  pre{background:#1c1c1c; color:#d8d8d8; font-size:12px; line-height:1.6; padding:16px; overflow-x:auto; margin:0 0 14px;}
+  .row{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
+  .row button{font-size:13px; font-weight:600; padding:9px 16px; border:1px solid var(--ink); background:#fff; cursor:pointer;}
+  .log{border:1px solid var(--divider); background:var(--bg-raised); padding:14px 16px; font-size:13px; line-height:1.8; min-height:30px;}
+  .log .ok{color:var(--ok); font-weight:700;} .log .fail{color:var(--red); font-weight:700;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; margin:10px 0 12px;}
+  td, th{border:1px solid var(--divider); padding:9px 12px; text-align:left;}
+  th{background:var(--bg-raised); font-weight:700;}
+  .verdict{font-size:15px; font-weight:700; margin-top:12px;}
+  .cite{font-size:11.5px; color:var(--ink-faint); line-height:1.7; margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="mark">CFP<span>·</span> Address Profile</div>
+  <div class="nav"><a href="./index.html">← All pages</a></div>
+</div>
+<div class="wrap">
+  <div class="eyebrow">Attribute profile #1 — postal fulfilment, DIGIPIN-shaped</div>
+  <h1>An ONDC-logistics-style flow: seller app → LSP, token as an optional payload.</h1>
+  <p class="lede">Pilot design, not a protocol rewrite: the capability rides as an optional field inside an existing Beckn <code>action</code>/<code>on_action</code> pair, with the plaintext-address path visibly preserved as a fallback. Nothing here requires every participant to upgrade on day one.</p>
+
+  <h2 class="section">The hop-by-hop flow</h2>
+  <div class="flow">
+    <div class="hop"><div class="who">Seller app</div><div class="what"><code>on_select</code> carries a delivery capability alongside the normal fulfilment block.</div><div class="plain">plaintext fallback: still present</div></div>
+    <div class="hop"><div class="who">LSP (DoP-as-LSP)</div><div class="what">Receives the grant via <code>confirm</code>. Resolves it exactly once, at depot time — the single online event in this pipeline.</div></div>
+    <div class="hop"><div class="who">DIGIPIN adapter</div><div class="what">Buckets and routes off a truncated 6-of-10-char DIGIPIN prefix. Full DIGIPIN never leaves the vault call.</div></div>
+    <div class="hop"><div class="who">Courier</div><div class="what">Scans an offline-verifiable COSE label — no network, no vault reference, zero address-shaped claims.</div></div>
+  </div>
+
+  <h2 class="section">The DIGIPIN adapter, live</h2>
+  <div class="row"><button id="btn-route">Route a parcel by DIGIPIN</button></div>
+  <pre id="route-out">// press the button</pre>
+
+  <h2 class="section">RTO unit economics — conservative case</h2>
+  <table>
+    <tr><th>Input</th><th>Value</th><th>Basis</th></tr>
+    <tr><td>RTO rate</td><td>25–30%</td><td>lower end of independently cross-checked 20–35% range</td></tr>
+    <tr><td>Address-error share of RTOs</td><td>~15%</td><td>conservative case — headline claims run 18–24%; this page books the lower figure</td></tr>
+    <tr><td>Per-RTO logistics cost</td><td>₹180–240</td><td>logistics-only, conservative against ~₹800 total-loss estimates</td></tr>
+    <tr><td>Marginal cost of a grant resolution</td><td>&lt; ₹1</td><td>one vault call, no new infrastructure per parcel</td></tr>
+  </table>
+  <div class="verdict">Addressable saving ≈ ₹7.5 per parcel (25% × 15% × ₹200) against &lt;₹1 marginal cost — the sign of the trade is not close, at the conservative case.</div>
+  <div class="cite">This is the pilot's booked case, not the headline case — see the lineage repo's <code>Convergence_Memo_FIDE.md</code> for the wind-tunnel and both personas' agreed measurement plan. What this page does <em>not</em> claim: that depot-time resolution survives DoP's deep-rural operating reality unmodified — that is a live, unresolved empirical question (D-2 in the same memo), not a settled one. If outage-driven failures eat the savings, the design moves to asynchronous pre-resolution before wider rollout.</div>
+</div>
+<script>
+async function sha256hex(msg){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,10).toUpperCase();
+}
+function randDigipin(){
+  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let out = "";
+  for (let i=0;i<10;i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
+  return out;
+}
+document.getElementById('btn-route').addEventListener('click', async () => {
+  const digipin = randDigipin();
+  const bucket = "IND-" + digipin.slice(0,6);
+  const code = await sha256hex(digipin + "|standard");
+  document.getElementById('route-out').textContent =
+`// full DIGIPIN never leaves this call frame — only the truncated bucket and routing code do
+digipin (transient)   = ${digipin}
+geoBucket (persisted)  = ${bucket}
+sortationCode          = IND-${code}`;
+});
+</script>
+</body>
+</html>

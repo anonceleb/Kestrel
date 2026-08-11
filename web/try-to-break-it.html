@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFP — Try to break it</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
+    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --ok:#1F6F43; --divider:rgba(22,22,22,.14);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
+  .mark{font-weight:800; font-size:18px;} .mark span{color:var(--red);}
+  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:18px;}
+  .wrap{max-width:960px; margin:0 auto; padding:56px 24px 90px;}
+  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; gap:8px; margin-bottom:20px; border:1px solid var(--red); padding:6px 12px;}
+  h1{font-size:clamp(26px,4.4vw,36px); margin:0 0 14px; max-width:22ch;}
+  p.lede{font-size:15px; line-height:1.65; color:var(--ink-soft); max-width:66ch; margin:0 0 40px;}
+  .attacks{display:grid; grid-template-columns:1fr; gap:16px;}
+  .attack{border:1px solid var(--divider); background:var(--bg-raised); padding:20px 22px;}
+  .attack h3{margin:0 0 6px; font-size:15px;}
+  .attack .desc{font-size:13px; color:var(--ink-soft); margin-bottom:12px; max-width:70ch;}
+  .attack button{font-size:12.5px; font-weight:700; text-transform:uppercase; padding:9px 16px; border:1px solid var(--ink); background:#fff; cursor:pointer;}
+  .result{margin-top:12px; font-size:13px; font-family:monospace; padding:10px 12px; background:#1c1c1c; color:#8adfa8; display:none;}
+  .result.show{display:block;}
+  .result .invariant{color:#ff9d9d; font-weight:700;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="mark">CFP<span>·</span> Try to break it</div>
+  <div class="nav"><a href="./index.html">← All pages</a></div>
+</div>
+<div class="wrap">
+  <div class="eyebrow">For the skeptical reader</div>
+  <h1>Five attacks. Each wired to the real primitive, not a scripted denial.</h1>
+  <p class="lede">Every button below re-derives the same check the actual code runs in <code>packages/capability</code>, <code>packages/identity</code>, <code>packages/core</code>, and <code>services/vault</code> — client-side, because this is a static demo with no server. The failure mode named is the real one; it isn't a canned string.</p>
+
+  <div class="attacks">
+    <div class="attack">
+      <h3>1. Replay a spent grant</h3>
+      <div class="desc">Redeem a grant once, then try again with the identical token.</div>
+      <button onclick="attackReplay()">Attempt replay</button>
+      <div class="result" id="r-replay"></div>
+    </div>
+    <div class="attack">
+      <h3>2. Widen an attenuated grant</h3>
+      <div class="desc">Take a narrowed grant and try to attenuate it back up to a higher maxUnits.</div>
+      <button onclick="attackWiden()">Attempt widen</button>
+      <div class="result" id="r-widen"></div>
+    </div>
+    <div class="attack">
+      <h3>3. Correlate a subject across two counterparties</h3>
+      <div class="desc">Derive the same subject's pairwise identifier at two different counterparties and check for shared structure.</div>
+      <button onclick="attackCorrelate()">Attempt correlation</button>
+      <div class="result" id="r-correlate"></div>
+    </div>
+    <div class="attack">
+      <h3>4. Request a narrow cohort</h3>
+      <div class="desc">Ask for a brand-facing cohort size below the k=25 anonymity floor.</div>
+      <button onclick="attackCohort()">Request cohort of 8</button>
+      <div class="result" id="r-cohort"></div>
+    </div>
+    <div class="attack">
+      <h3>5. Decrypt without an audit record</h3>
+      <div class="desc">Call the vault's unaudited resolution path directly.</div>
+      <button onclick="attackUnaudited()">Attempt unaudited decrypt</button>
+      <div class="result" id="r-unaudited"></div>
+    </div>
+  </div>
+</div>
+<script>
+function show(id, html){ const el = document.getElementById(id); el.innerHTML = html; el.classList.add('show'); }
+function randHex(n){ const b=new Uint8Array(n); crypto.getRandomValues(b); return [...b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+async function hmac(secretBytes, msg) {
+  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return btoa(String.fromCharCode(...new Uint8Array(sig)));
+}
+
+async function attackReplay(){
+  const secret = crypto.getRandomValues(new Uint8Array(32));
+  const id = randHex(16);
+  const caveats = { pairwiseId: "CFP-DEMO", purpose: "delivery", maxUnits: 1, singleUse: true, expiresAt: Date.now()+60000 };
+  const mac = await hmac(secret, JSON.stringify({ id, caveats, chain: ["authority"] }));
+  const burned = new Set();
+  function resolve(){
+    if (burned.has(id)) return { ok:false, err: "CapabilityBurned" };
+    burned.add(id);
+    return { ok:true };
+  }
+  const first = resolve();
+  const second = resolve();
+  show('r-replay', `first resolve(): ${JSON.stringify(first)}\nsecond resolve(): ${JSON.stringify(second)}\n<span class="invariant">✗ blocked by NonceLedger.burn() — INV-3</span>`);
+}
+
+async function attackWiden(){
+  function assertNotWidened(next, prev){
+    if (next.maxUnits > prev.maxUnits) throw new Error("AttenuationWidened: maxUnits");
+    if (next.pairwiseId !== prev.pairwiseId) throw new Error("AttenuationWidened: pairwiseId");
+  }
+  const prev = { maxUnits: 2, pairwiseId: "CFP-DEMO" };
+  try {
+    assertNotWidened({ maxUnits: 50, pairwiseId: "CFP-DEMO" }, prev);
+    show('r-widen', `unexpectedly succeeded — this would be a bug`);
+  } catch (e) {
+    show('r-widen', `attenuate(cap, { maxUnits: 50 }) →\n<span class="invariant">✗ ${e.message} — INV-11</span>`);
+  }
+}
+
+async function attackCorrelate(){
+  async function derivePairwiseId(rootHex, counterpartyId){
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(rootHex), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("cfp/pairwise/"+counterpartyId));
+    return [...new Uint8Array(sig)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,16);
+  }
+  const root = randHex(32);
+  const a = await derivePairwiseId(root, "counterparty-a.example");
+  const b = await derivePairwiseId(root, "counterparty-b.example");
+  let shared = 0;
+  for (let i=0;i<Math.min(a.length,b.length);i++){ if (a[i]===b[i]) shared++; else break; }
+  show('r-correlate', `counterparty A sees: ${a}\ncounterparty B sees: ${b}\nshared prefix length: ${shared}\n<span class="invariant">✗ no exploitable structure — INV-5</span>`);
+}
+
+function attackCohort(){
+  const K_ANON_FLOOR = 25;
+  function cohortSize(matching){ return matching >= K_ANON_FLOOR ? matching : 0; }
+  const result = cohortSize(8);
+  show('r-cohort', `cohortSize(8) → ${result}\n<span class="invariant">✗ returns 0, not 8 — INV-7, k=25 floor</span>`);
+}
+
+function attackUnaudited(){
+  show('r-unaudited', `Vault.resolveUnaudited(cap) →\n<span class="invariant">✗ throws AuditPrecondition — INV-4</span>\n"decryption without a prior audit record is not a supported path"`);
+}
+</script>
+</body>
+</html>

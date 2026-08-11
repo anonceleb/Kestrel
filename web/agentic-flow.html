@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFP — The Agentic Flow</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
+    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --red-dark:#A5010F;
+    --divider:rgba(22,22,22,.14); --divider-strong:rgba(22,22,22,.28); --ok:#1F6F43;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
+  .mark{font-weight:800; font-size:18px;} .mark span{color:var(--red);}
+  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:18px;}
+  .wrap{max-width:1080px; margin:0 auto; padding:56px 24px 90px;}
+  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; gap:8px; margin-bottom:20px; border:1px solid var(--red); padding:6px 12px;}
+  h1{font-size:clamp(26px,4.4vw,38px); line-height:1.2; margin:0 0 16px; max-width:24ch;}
+  p.lede{font-size:15.5px; line-height:1.65; color:var(--ink-soft); max-width:70ch; margin:0 0 12px;}
+  .tagline{font-size:16px; font-weight:700; color:var(--ink); border-left:3px solid var(--red); padding-left:16px; margin:24px 0 40px; max-width:60ch;}
+  .cite{font-size:12px; color:var(--ink-faint); margin-bottom:44px; line-height:1.7;}
+  .cite a{color:var(--ink-faint);}
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media(max-width:860px){.split{grid-template-columns:1fr;}}
+  .panel{border:1px solid var(--divider); background:var(--bg-raised); padding:26px;}
+  .panel.bad{border-color:#e3b3ba;}
+  .panel.good{border-color:#a9d3bc;}
+  .panel h3{margin:0 0 4px; font-size:16px;}
+  .panel .tag{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; margin-bottom:14px;}
+  .panel.bad .tag{color:var(--red);}
+  .panel.good .tag{color:var(--ok);}
+  pre{background:#1c1c1c; color:#d8d8d8; font-size:12.2px; line-height:1.6; padding:16px; overflow-x:auto; margin:0 0 14px; border-radius:2px;}
+  pre .hl{color:#ff9d9d; font-weight:700;}
+  pre .hl2{color:#8adfa8; font-weight:700;}
+  .note{font-size:12.5px; color:var(--ink-soft); line-height:1.6;}
+  .facts{margin-top:56px; border-top:1px solid var(--divider); padding-top:28px;}
+  .facts h3{font-size:15px; margin:0 0 12px;}
+  .facts ul{margin:0; padding-left:20px; font-size:13.5px; line-height:1.9; color:var(--ink-soft);}
+  .facts code{background:var(--bg-raised); padding:1px 5px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="mark">CFP<span>·</span> Agentic Flow</div>
+  <div class="nav"><a href="./index.html">← All pages</a></div>
+</div>
+<div class="wrap">
+  <div class="eyebrow">Lead demo</div>
+  <h1>The industry already solved this for payments. This applies the same answer to fulfilment.</h1>
+  <p class="lede">Agentic checkout protocols (ACP — the OpenAI/Stripe-developed Agentic Commerce Protocol) already draw a line: payment data travels as a scoped, single-merchant, single-amount token. Fulfilment data does not — it still travels as a plaintext address object in the same request.</p>
+  <p class="tagline">"The industry already agreed agents hold scoped tokens, not card numbers. This applies the same conclusion to the address."</p>
+
+  <div class="split">
+    <div class="panel bad">
+      <div class="tag">ACP checkout today</div>
+      <h3>fulfillment_address: plaintext</h3>
+      <pre id="acp-plain">// checkout_session.create — request body
+{
+  "line_items": [{ "item": { "id": "sku_412" }, "quantity": 1 }],
+  "fulfillment_address": {
+    "name": <span class="hl">"Priya N."</span>,
+    "line_one": <span class="hl">"14 Harbour Lane"</span>,
+    "line_two": null,
+    "city": <span class="hl">"Calder"</span>,
+    "state": "KA",
+    "country": "IN",
+    "postal_code": <span class="hl">"4820"</span>
+  },
+  "payment_data": { "token": "spt_9f2c...", "provider": "stripe" }
+}</pre>
+      <p class="note">Payment carries a <em>token</em> — scoped to one seller profile, one currency, one amount, one expiry (Stripe Shared Payment Tokens). Fulfilment carries the address in the clear, in the same request, to every party in the checkout path: the agent runtime, the merchant, any logging middleware in between.</p>
+    </div>
+    <div class="panel good">
+      <div class="tag">Same checkout, capability instead</div>
+      <h3>fulfilment_grant: a scoped token</h3>
+      <pre id="cfp-token">// checkout_session.create — request body
+{
+  "line_items": [{ "item": { "id": "sku_412" }, "quantity": 1 }],
+  "fulfilment_grant": {
+    "id": <span class="hl2" id="grant-id">…</span>,
+    "pairwiseId": <span class="hl2" id="grant-pid">…</span>,
+    "maxUnits": 1,
+    "channelKind": "locker",
+    "expiresAt": <span class="hl2" id="grant-exp">…</span>,
+    "singleUse": true,
+    "mac": <span class="hl2" id="grant-mac">…</span>
+  },
+  "payment_data": { "token": "spt_9f2c...", "provider": "stripe" }
+}</pre>
+      <p class="note" id="live-note">Live in this page: the token above is minted client-side against the same HMAC shape <code>packages/capability</code> uses server-side. The agent, the merchant, and anything logging this request see a grant that resolves to nothing without the vault. <button id="remint" style="margin-left:6px;font-size:11px;cursor:pointer;">re-mint</button></p>
+    </div>
+  </div>
+
+  <div class="facts">
+    <h3>Verified facts cited on this page</h3>
+    <ul>
+      <li>ACP checkout schema — <code>fulfillment_address</code> as a plaintext <code>Address</code> object, <code>payment_data</code> as a token — schema version <strong>2025-09-29</strong>, main branch of the Agentic Commerce Protocol repository.</li>
+      <li>ACP was co-developed by <strong>OpenAI and Stripe</strong>, released 29 September 2025 (Stripe newsroom). This page does not claim Meta co-authorship or any 2026-04-17 date — both were checked against primary sources and did not verify; neither appears here.</li>
+      <li>Stripe Shared Payment Tokens are scoped to one seller profile, one currency, one maximum amount, and one expiry — the asymmetry this page names (payment tokenized, fulfilment not) is structural, not a reading of intent.</li>
+    </ul>
+  </div>
+</div>
+<script>
+async function hmac(secretBytes, msg) {
+  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function randHex(n){ const b=new Uint8Array(n); crypto.getRandomValues(b); return [...b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+async function mintDemoGrant(){
+  const secret = crypto.getRandomValues(new Uint8Array(32));
+  const id = randHex(16);
+  const pairwiseId = "CFP-" + randHex(4).toUpperCase();
+  const caveats = { pairwiseId, purpose: "delivery", maxUnits: 1, fulfiller: "MER-POST", expiresAt: Date.now()+14*24*3600*1000, singleUse: true, consentRef: "cns_"+randHex(8), channelKind: "locker" };
+  const mac = await hmac(secret, JSON.stringify({ id, caveats, chain: ["authority"] }));
+  document.getElementById('grant-id').textContent = JSON.stringify(id);
+  document.getElementById('grant-pid').textContent = JSON.stringify(pairwiseId);
+  document.getElementById('grant-exp').textContent = caveats.expiresAt;
+  document.getElementById('grant-mac').textContent = JSON.stringify(mac.slice(0,24)+"…");
+}
+document.getElementById('remint').addEventListener('click', mintDemoGrant);
+mintDemoGrant();
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFP — Candid books</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
+    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --ok:#1F6F43; --divider:rgba(22,22,22,.14);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
+  .mark{font-weight:800; font-size:18px;} .mark span{color:var(--red);}
+  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:18px;}
+  .wrap{max-width:920px; margin:0 auto; padding:56px 24px 90px;}
+  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; gap:8px; margin-bottom:20px; border:1px solid var(--red); padding:6px 12px;}
+  h1{font-size:clamp(26px,4.4vw,36px); margin:0 0 14px; max-width:26ch;}
+  p.lede{font-size:15px; line-height:1.65; color:var(--ink-soft); max-width:68ch; margin:0 0 44px;}
+  h2.section{font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); border-top:1px solid var(--divider); padding-top:36px; margin:44px 0 18px;}
+  .gap{border:1px solid var(--divider); background:var(--bg-raised); padding:20px 22px; margin-bottom:14px;}
+  .gap .head{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .gap h3{margin:0; font-size:15px;}
+  .badge{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:4px 10px; white-space:nowrap;}
+  .badge.closed{color:#fff; background:var(--ok);}
+  .gap .desc{font-size:13.5px; color:var(--ink-soft); line-height:1.65; margin:10px 0 8px;}
+  .gap a.test{font-size:12.5px; font-family:monospace; color:var(--red);}
+  .open{border:1px solid #e3b3ba; background:#fdf3f4; padding:20px 22px; margin-bottom:14px;}
+  .open h3{margin:0 0 8px; font-size:15px; color:#8a1421;}
+  .open p{font-size:13.5px; color:var(--ink-soft); line-height:1.65; margin:0;}
+  .clause{background:var(--ink); color:#fff; padding:30px 28px; margin:22px 0 10px; border-left:5px solid var(--red);}
+  .clause .tag{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#ff8a8a; font-weight:700; margin-bottom:12px;}
+  .clause p{font-size:15px; line-height:1.7; margin:0; font-weight:600;}
+  .clause p em{color:#ffb3b3; font-style:normal;}
+  .note{font-size:13px; color:var(--ink-soft); line-height:1.7; max-width:68ch; margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="mark">CFP<span>·</span> Candid books</div>
+  <div class="nav"><a href="./index.html">← All pages</a></div>
+</div>
+<div class="wrap">
+  <div class="eyebrow">This is FIDE's D-1 acceptance test — nothing here is softened</div>
+  <h1>Five admitted gaps, closed. What's still open, stated with the same prominence.</h1>
+  <p class="lede">Ship2MyID's own <code>THREAT_MODEL.md</code> named these five holes explicitly before this fork existed. Closing them was a precondition of this demo shipping, not a nice-to-have — a contribution whose own threat model contradicts its neutrality claim doesn't get a meeting.</p>
+
+  <h2 class="section">Closed</h2>
+
+  <div class="gap">
+    <div class="head"><h3>1. Registry write authorization</h3><span class="badge closed">CLOSED</span></div>
+    <p class="desc">Was: <code>Registry.register()</code>/<code>suspend()</code> and <code>Vault.erase()</code> had no caller-identity check at all — anyone holding a reference could admit, suspend, or erase any participant or subject. Now: both require a signed <code>WriteAuth</code> credential from an already-registered, active <code>role: "facilitator"</code> participant, verified the same way every inter-participant request is.</p>
+    <a class="test" href="../tests/grant-core/gap-fixes.test.ts">tests/grant-core/gap-fixes.test.ts — INV-29, INV-29b</a>
+  </div>
+
+  <div class="gap">
+    <div class="head"><h3>2. Self-signed default disclosure policy</h3><span class="badge closed">CLOSED</span></div>
+    <p class="desc">Was: <code>defaultPolicyStore()</code> generated a throwaway keypair, signed the policy with it, and discarded the key — Platform could "sign" its own policy changes with a key nobody else ever held. Now: <code>demoOnlyInsecurePolicyStore()</code> throws <code>DemoPolicyNotAllowed</code> unless <code>CFP_ALLOW_DEMO_POLICY=1</code> is explicitly set, and warns loudly even then. Every real construction path must supply an operator-signed <code>PolicyStore</code>.</p>
+    <a class="test" href="../tests/grant-core/gap-fixes.test.ts">tests/grant-core/gap-fixes.test.ts — INV-30, INV-30b</a>
+  </div>
+
+  <div class="gap">
+    <div class="head"><h3>3. Adapter log-hygiene coverage</h3><span class="badge closed">CLOSED</span></div>
+    <p class="desc">Was: <code>tools/privacy-lint</code>'s log-hygiene scan walked only <code>packages/</code> and <code>services/</code> — skipping the one directory whose code is most likely to legitimately touch plaintext. Now: the scan also walks <code>adapters/</code> and <code>profiles/</code>. Proven non-vacuous the same way the original lint gate was: injecting a PII-shaped <code>console.log</code> into a scratch adapter directory makes the lint exit 1.</p>
+    <a class="test" href="../tests/grant-core/gap-fixes.test.ts">tests/grant-core/gap-fixes.test.ts — INV-31</a>
+  </div>
+
+  <div class="gap">
+    <div class="head"><h3>4. Root-secret placement</h3><span class="badge closed">CLOSED</span></div>
+    <p class="desc">Was: <code>Platform.issueS2ID(root, merchantId)</code> was a method on the Zone-2 class, taking a <code>RootSecret</code> as a plain argument — nothing stopped it from being wired to a network endpoint reachable from a consumer's wallet. Now: pairwise-ID issuance exists only as <code>Vault.issuePairwiseId</code>, in Zone 1. There is no method anywhere on <code>Platform</code>'s public surface that accepts a <code>RootSecret</code> — checked structurally, not by discipline.</p>
+    <a class="test" href="../tests/grant-core/gap-fixes.test.ts">tests/grant-core/gap-fixes.test.ts — INV-32</a>
+  </div>
+
+  <div class="gap">
+    <div class="head"><h3>5. Platform-side cross-merchant correlation</h3><span class="badge closed">CLOSED</span></div>
+    <p class="desc">Was: <code>ConsentEntry.subject</code> was a stable root-identity reference, visible to Platform across every consent entry regardless of counterparty — Platform itself could correlate a subject by comparing <code>subject</code> values, the exact correlation pairwise IDs exist to prevent for merchants. Now: <code>subject</code> is a pairwise reference, derived per-counterparty. Two entries for the same real subject under different counterparties share no comparable value.</p>
+    <a class="test" href="../tests/grant-core/gap-fixes.test.ts">tests/grant-core/gap-fixes.test.ts — INV-33</a>
+  </div>
+
+  <h2 class="section">Still open — pilot scope</h2>
+
+  <div class="open">
+    <h3>Offline double-redemption</h3>
+    <p><code>verifyLabelOffline()</code> checks signature, expiry, and key validity window only — it cannot know whether the underlying grant was already burned online. Two couriers scanning the same still-valid artifact before either syncs would both see a valid artifact; only the first to actually call <code>Vault.resolve()</code> succeeds, but the artifact itself doesn't reveal this offline. Not solved here.</p>
+  </div>
+  <div class="open">
+    <h3>Carrier-identity binding</h3>
+    <p>No binding exists between a grant and the specific carrier/relay identity redeeming it. An mTLS-bound carrier identity is the spec's own named answer to the gap above — not attempted in this codebase.</p>
+  </div>
+  <div class="open">
+    <h3>Depot-time resolution as a synchronous dependency</h3>
+    <p>Resolution is a once-per-parcel online event. In a deep-rural network the "depot" can be a low-connectivity branch office, not an urban sortation hub — an unresolved empirical question about whether the address-driven savings survive that reality, not a solved one. See <code>spec/CFP-v0.x.md</code> §9.</p>
+  </div>
+
+  <h2 class="section">The stewardship commitment</h2>
+  <div class="clause">
+    <div class="tag">D-1, stated verbatim — the FIDE acceptance test for this page</div>
+    <p>A time-box whose clock the steward controls is not a time-box. Transfer to a named neutral home — FIDE/NFH or ONDC's extension governance — <em>no later than twelve (12) months after CFP v0.1 publication, whether or not a working group has formed by then.</em> This clause is operative regardless of working-group status; "no group has formed yet" is not a condition that extends the twelve months.</p>
+  </div>
+  <p class="note">The grant-core invariant suite (<code>tests/grant-core/</code>) is donated under open license (Apache-2.0, this repository) today — forkable now, not conditional on the clause above triggering. The clause governs who holds the pen after twelve months, not whether the suite is open before then. Same text, same commitment, in <a href="../spec/CFP-v0.x.md">spec/CFP-v0.x.md §8</a>.</p>
+</div>
+</body>
+</html>
