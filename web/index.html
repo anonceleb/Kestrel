@@ -22,6 +22,11 @@
   h1{font-weight:700; font-size:clamp(28px,5vw,42px); line-height:1.2; margin:0 0 18px; max-width:22ch;}
   p.lede{font-size:16px; line-height:1.6; color:var(--ink-soft); max-width:60ch; margin:0 0 40px;}
   .quote{border-left:3px solid var(--red); padding:4px 0 4px 18px; margin:0 0 48px; font-size:15px; color:var(--ink-soft); font-style:italic; max-width:56ch;}
+  .frame{background:var(--bg-raised); border:1px solid var(--divider); padding:22px 24px; margin:0 0 48px; max-width:68ch;}
+  .frame .k-eyebrow{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; font-weight:700;}
+  .frame p{font-size:14px; line-height:1.65; color:var(--ink-soft); margin:0;}
+  .frame p + p{margin-top:10px;}
+  .frame strong{color:var(--ink); font-weight:700;}
   .lead-card{display:block; text-decoration:none; color:var(--ink); background:var(--ink); color:#fff; padding:32px 30px; margin-bottom:44px; position:relative; overflow:hidden;}
   .lead-card .k-eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#ff8a8a; margin-bottom:12px; font-weight:700;}
   .lead-card h2{font-size:26px; margin:0 0 10px;}
@@ -57,6 +62,12 @@
   <h1>A capability to act on a sensitive attribute — never the attribute itself.</h1>
   <p class="lede">A scoped, expiring, single-use, revocable, non-widening grant is the core primitive; address is its first attribute profile, contact/phone its second. Six pages, all running their own cryptography live in your browser.</p>
   <p class="quote">"Yes to the primitive. No to the layer. Not yet to the extension." — the FIDE convergence memo this demo executes.</p>
+
+  <div class="frame">
+    <div class="k-eyebrow">Who this is for</div>
+    <p>This is the demo we'd walk a <strong>Beckn/FIDE protocol steward</strong> through if we were pitching them on adopting a generic privacy primitive into the network grammar — not a product demo, not a sales deck. Nobody in that room buys anything; they decide whether an open network's spec should carry this capability.</p>
+    <p>What follows proves one claim, six ways: <strong>a scoped, expiring, single-use, revocable, non-widening grant lets a counterparty act on a sensitive attribute without ever holding it.</strong> There is no production system or real deployment behind these pages — this is a proof-of-primitive, verifiable adversarially in your own browser, not a proof-of-product.</p>
+  </div>
 
   <a class="lead-card" href="./agentic-flow.html">
     <div class="k-eyebrow">Start here — the lead demo</div>
