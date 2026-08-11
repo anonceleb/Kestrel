@@ -68,6 +68,7 @@ import {
   createPrivateKey,
   type KeyObject,
 } from "node:crypto";
+import type { DeDiDirectoryPort } from "../../directory/src/directory.ts";
 
 export type ParticipantRole = "merchant" | "operator" | "brand" | "platform" | "facilitator";
 
@@ -159,6 +160,7 @@ export type WriteAuth = { envelope: SignedEnvelope; body: unknown };
 
 export class Registry {
   #participants = new Map<string, Participant>();
+  #directory: DeDiDirectoryPort | undefined;
 
   /**
    * [Gap fix] `genesisFacilitator` seeds the trust anchor — accepted
@@ -166,9 +168,16 @@ export class Registry {
    * already in the registry could sign a credential for the first entry.
    * Every subsequent register()/suspend() call must present a WriteAuth
    * signed by a facilitator this chain of trust already admits.
+   *
+   * `directory`, when supplied, is a `DeDiDirectoryPort` (see
+   * packages/directory/src/directory.ts) that `suspend()` publishes
+   * revocations through, so a third party can independently verify a
+   * subscriber's suspended status by querying the directory rather than
+   * trusting this registry's own `lookup()`.
    */
-  constructor(genesisFacilitator?: Participant) {
+  constructor(genesisFacilitator?: Participant, directory?: DeDiDirectoryPort) {
     if (genesisFacilitator) this.#participants.set(genesisFacilitator.subscriberId, genesisFacilitator);
+    this.#directory = directory;
   }
 
   #verifySignature(p: Participant, env: SignedEnvelope, body: unknown, now: number): void {
@@ -214,6 +223,11 @@ export class Registry {
     this.#requireFacilitator(auth);
     const p = this.lookup(subscriberId);
     this.#participants.set(subscriberId, { ...p, status: "suspended" });
+    this.#directory?.publishRevocation({
+      subject: subscriberId,
+      kind: "subscriber",
+      publishedAt: Date.now(),
+    });
   }
 
   all(): Participant[] {

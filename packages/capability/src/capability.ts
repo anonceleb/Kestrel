@@ -18,6 +18,7 @@
  * to us, and with no ability to widen. Caveats accumulate; they never relax.
  */
 import { createHmac, randomUUID } from "node:crypto";
+import type { DeDiDirectoryPort } from "../../directory/src/directory.ts";
 
 export type Caveats = {
   pairwiseId: string;
@@ -130,9 +131,26 @@ export function verify(secret: Buffer, cap: Capability, now = Date.now()): void 
   if (now > cap.caveats.expiresAt) throw new CapabilityExpired(cap.id);
 }
 
-/** Single-use enforcement. Redis SETNX in production; a Set here. */
+/**
+ * Single-use enforcement. Redis SETNX in production; a Set here.
+ *
+ * When constructed with a `directory` (a `DeDiDirectoryPort` — see
+ * packages/directory/src/directory.ts), consumer-initiated `revoke()` calls
+ * also publish through `publishRevocation()`, so a third party can
+ * independently verify a capability was revoked by querying the directory
+ * rather than trusting whichever service's in-memory Set happens to answer.
+ * `burn()` (single-use enforcement on ordinary redemption) is not a
+ * revocation event and does not publish — only the consumer-initiated path
+ * is.
+ */
 export class NonceLedger {
   #burned = new Set<string>();
+  #directory: DeDiDirectoryPort | undefined;
+
+  constructor(opts: { directory?: DeDiDirectoryPort } = {}) {
+    this.#directory = opts.directory;
+  }
+
   burn(id: string): void {
     if (this.#burned.has(id)) throw new CapabilityBurned(id);
     this.#burned.add(id);
@@ -143,5 +161,6 @@ export class NonceLedger {
   /** Consumer-initiated revocation, effective mid-flight. */
   revoke(id: string): void {
     this.#burned.add(id);
+    this.#directory?.publishRevocation({ subject: id, kind: "capability", publishedAt: Date.now() });
   }
 }

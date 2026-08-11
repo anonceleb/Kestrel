@@ -21,6 +21,7 @@
 import { createPrivateKey, createPublicKey, sign as edSign, verify as edVerify } from "node:crypto";
 import { digestOf } from "../../registry/src/signing.ts";
 import { newKeyPair } from "../../registry/src/signing.ts";
+import type { DeDiDirectoryPort } from "../../directory/src/directory.ts";
 
 export class PolicyInvalid extends Error {}
 export class PolicyStale extends Error {}
@@ -67,10 +68,22 @@ export class PolicyStore {
   #publicKey: string;
   #active: SignedPolicy;
   #history = new Map<string, SignedPolicy>();
+  #directory: DeDiDirectoryPort | undefined;
 
-  constructor(publicKeyB64: string, initial: SignedPolicy) {
+  /**
+   * `directory`, when supplied, is a `DeDiDirectoryPort` (see
+   * packages/directory/src/directory.ts) that `reload()` publishes the
+   * newly active signed policy through, so a third party can independently
+   * verify which policy version/hash was actually in force at a given time
+   * by querying the directory rather than trusting this store's own
+   * `active()`. The genesis policy passed to the constructor is not
+   * published — only policies that arrive via `reload()` are, matching
+   * the plan's "PolicyStore.reload() publishes through publishPolicy".
+   */
+  constructor(publicKeyB64: string, initial: SignedPolicy, directory?: DeDiDirectoryPort) {
     this.#publicKey = publicKeyB64;
     this.#active = this.#accept(initial);
+    this.#directory = directory;
   }
 
   #accept(signed: SignedPolicy): SignedPolicy {
@@ -89,6 +102,12 @@ export class PolicyStore {
       throw new PolicyStale(`policy v${next.policy.version} is not newer than active v${this.#active.policy.version}`);
     }
     this.#active = this.#accept(next);
+    this.#directory?.publishPolicy({
+      policyHash: next.hash,
+      version: next.policy.version,
+      signerKeyId: next.signerKeyId,
+      publishedAt: Date.now(),
+    });
   }
 
   active(): SignedPolicy {
