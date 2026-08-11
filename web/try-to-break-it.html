@@ -3,136 +3,236 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CFP — Try to break it</title>
+<title>CFP — try-to-break-it</title>
 <style>
-  :root{
-    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
-    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --ok:#1F6F43; --divider:rgba(22,22,22,.14);
-  }
+  :root{ --ink:#1a1a1a; --dim:#6b6b6b; --hair:#d9d5cc; --bg:#fbfaf7; --panel:#f3f1ea; --ok:#1f6f43; --err:#a3232e; }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif;}
-  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
-  .mark{font-weight:800; font-size:18px;} .mark span{color:var(--red);}
-  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:18px;}
-  .wrap{max-width:960px; margin:0 auto; padding:56px 24px 90px;}
-  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; gap:8px; margin-bottom:20px; border:1px solid var(--red); padding:6px 12px;}
-  h1{font-size:clamp(26px,4.4vw,36px); margin:0 0 14px; max-width:22ch;}
-  p.lede{font-size:15px; line-height:1.65; color:var(--ink-soft); max-width:66ch; margin:0 0 40px;}
-  .attacks{display:grid; grid-template-columns:1fr; gap:16px;}
-  .attack{border:1px solid var(--divider); background:var(--bg-raised); padding:20px 22px;}
-  .attack h3{margin:0 0 6px; font-size:15px;}
-  .attack .desc{font-size:13px; color:var(--ink-soft); margin-bottom:12px; max-width:70ch;}
-  .attack button{font-size:12.5px; font-weight:700; text-transform:uppercase; padding:9px 16px; border:1px solid var(--ink); background:#fff; cursor:pointer;}
-  .result{margin-top:12px; font-size:13px; font-family:monospace; padding:10px 12px; background:#1c1c1c; color:#8adfa8; display:none;}
-  .result.show{display:block;}
-  .result .invariant{color:#ff9d9d; font-weight:700;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:13.5px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  .page{max-width:920px; margin:0 auto; padding:28px 20px 80px;}
+  header{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap;
+         border-bottom:1px solid var(--ink); padding-bottom:10px; margin-bottom:34px;}
+  header .t{font-weight:700;}
+  nav a{color:var(--dim); text-decoration:none; margin-left:14px;}
+  nav a:hover{color:var(--ink); text-decoration:underline;}
+  h1{font-size:17px; margin:0 0 14px;}
+  p{max-width:78ch; margin:0 0 14px;}
+  .dim{color:var(--dim);}
+  a{color:var(--ink);}
+  .attack{border-top:1px solid var(--hair); margin-top:26px; padding-top:16px;}
+  .attack h2{font-size:13.5px; margin:0 0 6px;}
+  .attack .d{color:var(--dim); margin:0 0 10px; max-width:78ch;}
+  button{font:12.5px ui-monospace, Menlo, monospace; border:1px solid var(--ink); background:transparent;
+         color:var(--ink); padding:6px 13px; cursor:pointer;}
+  button:hover{background:var(--ink); color:var(--bg);}
+  pre{background:var(--panel); border:1px solid var(--hair); padding:11px 13px; overflow-x:auto;
+      font-size:12px; line-height:1.6; margin:10px 0 0; display:none; white-space:pre-wrap; word-break:break-all;}
+  pre.show{display:block;}
+  .ok{color:var(--ok);} .err{color:var(--err);}
+  footer{border-top:1px solid var(--hair); margin-top:44px; padding-top:14px; font-size:12px; color:var(--dim);}
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="mark">CFP<span>·</span> Try to break it</div>
-  <div class="nav"><a href="./index.html">← All pages</a></div>
+<div class="page">
+<header>
+  <span class="t">CFP / try-to-break-it</span>
+  <nav>
+    <a href="./index.html">index</a>
+    <a href="./primitive.html">primitive</a>
+    <a href="./profile-address.html">address</a>
+  </nav>
+</header>
+
+<h1>Eight attacks against the live objects on this page</h1>
+<p>On load, this page builds a real deployment in memory from the transformed repo modules: a
+registry seeded with a genesis facilitator, a vault holding an encrypted record, a minted grant.
+Each button attacks those objects. The error you see is thrown by the module, not printed by the
+page — the page's own handlers only catch and display. Each attack cites the Node test that pins
+the same invariant; run <code>npm run verify</code> to see all 52.</p>
+<pre id="setup" class="show">building…</pre>
+
+<div class="attack">
+  <h2>1. Replay a spent grant</h2>
+  <p class="d">Resolve the grant once, then present the identical token again. — tests/grant-core (INV-3)</p>
+  <button data-a="replay">run</button><pre></pre>
 </div>
-<div class="wrap">
-  <div class="eyebrow">For the skeptical reader</div>
-  <h1>Five attacks. Each wired to the real primitive, not a scripted denial.</h1>
-  <p class="lede">Every button below re-derives the same check the actual code runs in <code>packages/capability</code>, <code>packages/identity</code>, <code>packages/core</code>, and <code>services/vault</code> — client-side, because this is a static demo with no server. The failure mode named is the real one; it isn't a canned string.</p>
-
-  <div class="attacks">
-    <div class="attack">
-      <h3>1. Replay a spent grant</h3>
-      <div class="desc">Redeem a grant once, then try again with the identical token.</div>
-      <button onclick="attackReplay()">Attempt replay</button>
-      <div class="result" id="r-replay"></div>
-    </div>
-    <div class="attack">
-      <h3>2. Widen an attenuated grant</h3>
-      <div class="desc">Take a narrowed grant and try to attenuate it back up to a higher maxUnits.</div>
-      <button onclick="attackWiden()">Attempt widen</button>
-      <div class="result" id="r-widen"></div>
-    </div>
-    <div class="attack">
-      <h3>3. Correlate a subject across two counterparties</h3>
-      <div class="desc">Derive the same subject's pairwise identifier at two different counterparties and check for shared structure.</div>
-      <button onclick="attackCorrelate()">Attempt correlation</button>
-      <div class="result" id="r-correlate"></div>
-    </div>
-    <div class="attack">
-      <h3>4. Request a narrow cohort</h3>
-      <div class="desc">Ask for a brand-facing cohort size below the k=25 anonymity floor.</div>
-      <button onclick="attackCohort()">Request cohort of 8</button>
-      <div class="result" id="r-cohort"></div>
-    </div>
-    <div class="attack">
-      <h3>5. Decrypt without an audit record</h3>
-      <div class="desc">Call the vault's unaudited resolution path directly.</div>
-      <button onclick="attackUnaudited()">Attempt unaudited decrypt</button>
-      <div class="result" id="r-unaudited"></div>
-    </div>
-  </div>
+<div class="attack">
+  <h2>2. Widen an attenuated grant</h2>
+  <p class="d">Take the narrowed grant and attenuate it back up to a higher maxUnits. — tests/grant-core (INV-11)</p>
+  <button data-a="widen">run</button><pre></pre>
 </div>
-<script>
-function show(id, html){ const el = document.getElementById(id); el.innerHTML = html; el.classList.add('show'); }
-function randHex(n){ const b=new Uint8Array(n); crypto.getRandomValues(b); return [...b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
-async function hmac(secretBytes, msg) {
-  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
-  return btoa(String.fromCharCode(...new Uint8Array(sig)));
-}
+<div class="attack">
+  <h2>3. Forge the MAC</h2>
+  <p class="d">Flip one caveat (maxUnits 1 → 100) and present the grant with its original mac. — tests/grant-core (INV-2)</p>
+  <button data-a="forge">run</button><pre></pre>
+</div>
+<div class="attack">
+  <h2>4. Correlate a subject across two counterparties</h2>
+  <p class="d">Derive the same subject's pairwise id at two counterparties; score shared structure with the
+  repo's own linkability oracle. — tests/grant-core (INV-5)</p>
+  <button data-a="correlate">run</button><pre></pre>
+</div>
+<div class="attack">
+  <h2>5. Decrypt without an audit record</h2>
+  <p class="d">Call the vault's unaudited path directly. It exists only so the suite can prove it is a dead end. — tests/grant-core (INV-4)</p>
+  <button data-a="unaudited">run</button><pre></pre>
+</div>
+<div class="attack">
+  <h2>6. Tamper with the stored ciphertext</h2>
+  <p class="d">Swap one record's ciphertext into another record's slot (or flip a byte) and resolve. AAD binds
+  ciphertext to tenant|record — a moved row fails closed instead of returning the wrong person's address.</p>
+  <button data-a="tamper">run</button><pre></pre>
+</div>
+<div class="attack">
+  <h2>7. Sign a registry write with a non-facilitator key</h2>
+  <p class="d">A registered operator (not facilitator) signs a WriteAuth admitting a new participant. — tests/grant-core (INV-29)</p>
+  <button data-a="nonfac">run</button><pre></pre>
+</div>
+<div class="attack">
+  <h2>8. Present a doctored Beckn envelope</h2>
+  <p class="d">Take a validly signed envelope, alter the body one byte, present both. BLAKE2b-512 body digest
+  is part of the signed string. — tests/grant-core (INV-34)</p>
+  <button data-a="doctored">run</button><pre></pre>
+</div>
+<div class="attack">
+  <h2>+ Request a narrow cohort</h2>
+  <p class="d">Ask for a brand-facing cohort of 8, below the k=25 floor. — tests/profiles/address (INV-7)</p>
+  <button data-a="cohort">run</button><pre></pre>
+</div>
 
-async function attackReplay(){
-  const secret = crypto.getRandomValues(new Uint8Array(32));
-  const id = randHex(16);
-  const caveats = { pairwiseId: "CFP-DEMO", purpose: "delivery", maxUnits: 1, singleUse: true, expiresAt: Date.now()+60000 };
-  const mac = await hmac(secret, JSON.stringify({ id, caveats, chain: ["authority"] }));
-  const burned = new Set();
-  function resolve(){
-    if (burned.has(id)) return { ok:false, err: "CapabilityBurned" };
-    burned.add(id);
-    return { ok:true };
-  }
-  const first = resolve();
-  const second = resolve();
-  show('r-replay', `first resolve(): ${JSON.stringify(first)}\nsecond resolve(): ${JSON.stringify(second)}\n<span class="invariant">✗ blocked by NonceLedger.burn() — INV-3</span>`);
-}
+<footer>Known-open attacks are listed with the same prominence as these:
+<a href="./candid-books.html">candid-books § still open</a> — offline double-redemption,
+carrier-identity binding, depot connectivity. Provenance:
+<a href="./index.html#provenance">index § provenance</a>.</footer>
+</div>
 
-async function attackWiden(){
-  function assertNotWidened(next, prev){
-    if (next.maxUnits > prev.maxUnits) throw new Error("AttenuationWidened: maxUnits");
-    if (next.pairwiseId !== prev.pairwiseId) throw new Error("AttenuationWidened: pairwiseId");
-  }
-  const prev = { maxUnits: 2, pairwiseId: "CFP-DEMO" };
-  try {
-    assertNotWidened({ maxUnits: 50, pairwiseId: "CFP-DEMO" }, prev);
-    show('r-widen', `unexpectedly succeeded — this would be a bug`);
-  } catch (e) {
-    show('r-widen', `attenuate(cap, { maxUnits: 50 }) →\n<span class="invariant">✗ ${e.message} — INV-11</span>`);
-  }
-}
+<script type="module">
+import { Registry, newKeyPair, signRequest } from "./assets/js/packages/registry/src/signing.js";
+import { Vault } from "./assets/js/services/vault/src/vault.js";
+import { Kms, seal, open } from "./assets/js/packages/crypto/src/envelope.js";
+import { AuditLog, ConsentLedger, cohortSize, K_ANON_FLOOR } from "./assets/js/packages/core/src/core.js";
+import { mint, attenuate, verify, NonceLedger } from "./assets/js/packages/capability/src/capability.js";
+import { newRootSecret, derivePairwiseId, linkabilityScore } from "./assets/js/packages/identity/src/pairwise.js";
+import { IndiaPostRouting, geoBucketFor } from "./assets/js/adapters/india-post/src/adapter.js";
+import { randomBytes } from "./assets/js/node-crypto.js";
 
-async function attackCorrelate(){
-  async function derivePairwiseId(rootHex, counterpartyId){
-    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(rootHex), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("cfp/pairwise/"+counterpartyId));
-    return [...new Uint8Array(sig)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,16);
-  }
-  const root = randHex(32);
-  const a = await derivePairwiseId(root, "counterparty-a.example");
-  const b = await derivePairwiseId(root, "counterparty-b.example");
-  let shared = 0;
-  for (let i=0;i<Math.min(a.length,b.length);i++){ if (a[i]===b[i]) shared++; else break; }
-  show('r-correlate', `counterparty A sees: ${a}\ncounterparty B sees: ${b}\nshared prefix length: ${shared}\n<span class="invariant">✗ no exploitable structure — INV-5</span>`);
-}
+const FAC = "facilitator.cfp.example", LSP = "lsp.indiapost.example";
+const facKeys = newKeyPair(), lspKeys = newKeyPair();
+const registry = new Registry({ subscriberId: FAC, role: "facilitator", keyId: "k1",
+  publicKey: facKeys.publicKey, tier: 3, status: "active" });
+const facAuth = (body) => ({ envelope: signRequest(FAC, "k1", facKeys.privateKey, body), body });
+const lspP = { subscriberId: LSP, role: "operator", keyId: "k1", publicKey: lspKeys.publicKey, tier: 2, status: "active" };
+registry.register(lspP, facAuth(lspP));
 
-function attackCohort(){
-  const K_ANON_FLOOR = 25;
-  function cohortSize(matching){ return matching >= K_ANON_FLOOR ? matching : 0; }
-  const result = cohortSize(8);
-  show('r-cohort', `cohortSize(8) → ${result}\n<span class="invariant">✗ returns 0, not 8 — INV-7, k=25 floor</span>`);
-}
+const consent = new ConsentLedger(), audit = new AuditLog();
+const capSecret = randomBytes(32);
+const vault = new Vault({ kms: new Kms(), audit, consent, nonces: new NonceLedger(),
+  capSecret, routing: new IndiaPostRouting(), registry });
+const root = newRootSecret();
+const pid = vault.issuePairwiseId(root, LSP);
+vault.store({ id: "rec-a", subjectRef: "subj-a", tenantId: "indiapost",
+  payload: { line1: "14 Harbour Lane", locality: "Calder", postcode: "482001", digipin: "39J49L8T4C" },
+  geoBucket: geoBucketFor("39J49L8T4C"), vouchTier: 2 });
+vault.bind(pid, "rec-a");
+const c = consent.append({ subject: pid, grantedTo: LSP, purpose: "delivery",
+  scope: ["fulfil"], at: Date.now(), expiresAt: Date.now() + 86400000 });
+const mkGrant = () => mint(capSecret, { pairwiseId: pid, purpose: "delivery", maxUnits: 1,
+  fulfiller: "standard", expiresAt: Date.now() + 86400000, singleUse: true,
+  consentRef: c.ref, channelKind: "door" });
 
-function attackUnaudited(){
-  show('r-unaudited', `Vault.resolveUnaudited(cap) →\n<span class="invariant">✗ throws AuditPrecondition — INV-4</span>\n"decryption without a prior audit record is not a supported path"`);
+document.getElementById("setup").textContent =
+`registry: ${FAC} (genesis) admits ${LSP} via signed WriteAuth
+vault:    1 record sealed (ChaCha20-Poly1305), bound to ${pid}
+consent:  ${c.ref} · grants minted per attack, HMAC secret held by the vault only`;
+
+const attacks = {
+  async replay() {
+    const g = mkGrant();
+    const first = await vault.resolve(g, LSP);
+    try {
+      await vault.resolve(g, LSP);
+      return `BUG: replay succeeded`;
+    } catch (e) {
+      return `first resolve  → ${JSON.stringify(first)}\nsecond resolve → <span class="err">${e.constructor.name}</span> (thrown by NonceLedger.burn, packages/capability)`;
+    }
+  },
+  async widen() {
+    const g = attenuate(capSecret, mkGrant(), { maxUnits: 1 }, "narrower");
+    try {
+      attenuate(capSecret, g, { maxUnits: 50 }, "widener");
+      return `BUG: widening succeeded`;
+    } catch (e) {
+      return `attenuate({maxUnits: 50}) → <span class="err">${e.constructor.name}: ${e.message}</span> (assertNotWidened, before any mac is computed)`;
+    }
+  },
+  async forge() {
+    const g = mkGrant();
+    const forged = { ...g, caveats: { ...g.caveats, maxUnits: 100 } };
+    try {
+      verify(capSecret, forged);
+      return `BUG: forged caveats verified`;
+    } catch (e) {
+      return `verify(forged) → <span class="err">${e.constructor.name}: ${e.message}</span> — the mac covers {id, caveats, chain}`;
+    }
+  },
+  async correlate() {
+    const a = derivePairwiseId(root, "counterparty-a.example");
+    const b = derivePairwiseId(root, "counterparty-b.example");
+    return `counterparty A sees ${a}\ncounterparty B sees ${b}\nlinkabilityScore(a, b) = <span class="ok">${linkabilityScore(a, b)}</span> (packages/identity's own oracle — 0 = no exploitable shared structure)`;
+  },
+  async unaudited() {
+    try {
+      await vault.resolveUnaudited(mkGrant());
+      return `BUG: unaudited decrypt returned`;
+    } catch (e) {
+      return `vault.resolveUnaudited(grant) → <span class="err">${e.constructor.name}: ${e.message}</span>`;
+    }
+  },
+  async tamper() {
+    // AAD is tenant|record: row-1's ciphertext presented under row-2's identity must fail
+    const kms = new Kms();
+    const box = seal(kms, "indiapost", "row-1", JSON.stringify({ line1: "14 Harbour Lane" }));
+    kms.mintShredSalt("row-2");
+    try {
+      open(kms, "indiapost", "row-2", box);
+      return `BUG: swapped ciphertext decrypted`;
+    } catch (e) {
+      return `open(kms, "indiapost", "row-2", ciphertextOf(row-1)) → <span class="err">${e.constructor.name}</span> — AAD "tenant|record" fails closed; a copied row never yields another subject's plaintext`;
+    }
+  },
+  async nonfac() {
+    const evil = { subscriberId: "evil.example", role: "merchant", keyId: "k1",
+      publicKey: newKeyPair().publicKey, tier: 1, status: "active" };
+    const auth = { envelope: signRequest(LSP, "k1", lspKeys.privateKey, evil), body: evil };
+    try {
+      registry.register(evil, auth); // signed by the operator, not a facilitator
+      return `BUG: non-facilitator write accepted`;
+    } catch (e) {
+      return `register(evil, signedBy: ${LSP}) → <span class="err">${e.constructor.name}: ${e.message}</span>`;
+    }
+  },
+  async doctored() {
+    const body = { order: "ord-1", amount: 100 };
+    const env = signRequest(LSP, "k1", lspKeys.privateKey, body);
+    const doctored = { ...body, amount: 100000 };
+    try {
+      registry.verify(env, doctored);
+      return `BUG: doctored body verified`;
+    } catch (e) {
+      return `verify(validEnvelope, doctoredBody) → <span class="err">${e.constructor.name}: ${e.message}</span> — BLAKE-512 body digest is inside the Ed25519-signed string`;
+    }
+  },
+  async cohort() {
+    return `cohortSize(8) = <span class="err">${cohortSize(8)}</span> — packages/core returns 0 for anything under K_ANON_FLOOR=${K_ANON_FLOOR}; cohortSize(31) = <span class="ok">${cohortSize(31)}</span>`;
+  },
+};
+
+for (const btn of document.querySelectorAll("button[data-a]")) {
+  btn.onclick = async () => {
+    const out = btn.nextElementSibling;
+    out.innerHTML = await attacks[btn.dataset.a]();
+    out.classList.add("show");
+  };
 }
 </script>
 </body>

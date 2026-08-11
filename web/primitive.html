@@ -3,111 +3,166 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CFP — The Primitive</title>
+<title>CFP — primitive</title>
 <style>
-  :root{
-    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
-    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --ok:#1F6F43; --divider:rgba(22,22,22,.14);
-  }
+  :root{ --ink:#1a1a1a; --dim:#6b6b6b; --hair:#d9d5cc; --bg:#fbfaf7; --panel:#f3f1ea; --ok:#1f6f43; --err:#a3232e; }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif;}
-  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
-  .mark{font-weight:800; font-size:18px;} .mark span{color:var(--red);}
-  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:18px;}
-  .wrap{max-width:900px; margin:0 auto; padding:56px 24px 90px;}
-  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; gap:8px; margin-bottom:20px; border:1px solid var(--red); padding:6px 12px;}
-  h1{font-size:clamp(26px,4.4vw,36px); margin:0 0 14px; max-width:22ch;}
-  p.lede{font-size:15px; line-height:1.65; color:var(--ink-soft); max-width:66ch; margin:0 0 40px;}
-  .steps{display:flex; gap:8px; margin-bottom:30px; flex-wrap:wrap;}
-  .steps button{font-size:12.5px; font-weight:700; text-transform:uppercase; padding:9px 16px; border:1px solid var(--divider); background:var(--bg-raised); cursor:pointer;}
-  .steps button.active{background:var(--ink); color:#fff; border-color:var(--ink);}
-  .steps button:disabled{opacity:.35; cursor:not-allowed;}
-  pre{background:#1c1c1c; color:#d8d8d8; font-size:12.5px; line-height:1.65; padding:20px; overflow-x:auto; margin:0 0 20px;}
-  .row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px;}
-  .row button{font-size:13px; font-weight:600; padding:10px 18px; border:1px solid var(--ink); background:#fff; cursor:pointer;}
-  .row button.danger{border-color:var(--red); color:var(--red);}
-  .log{border:1px solid var(--divider); background:var(--bg-raised); padding:16px 18px; font-size:13px; line-height:1.9; min-height:40px;}
-  .log .ok{color:var(--ok); font-weight:700;}
-  .log .fail{color:var(--red); font-weight:700;}
-  .fine{font-size:12px; color:var(--ink-faint); margin-top:36px; line-height:1.7;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:13.5px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  .page{max-width:880px; margin:0 auto; padding:28px 20px 80px;}
+  header{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap;
+         border-bottom:1px solid var(--ink); padding-bottom:10px; margin-bottom:34px;}
+  header .t{font-weight:700;}
+  nav a{color:var(--dim); text-decoration:none; margin-left:14px;}
+  nav a:hover{color:var(--ink); text-decoration:underline;}
+  h1{font-size:17px; margin:0 0 14px;}
+  p{max-width:76ch; margin:0 0 14px;}
+  .dim{color:var(--dim);}
+  a{color:var(--ink);}
+  section{border-top:1px solid var(--hair); margin-top:30px; padding-top:18px;}
+  section > h2{font-size:13.5px; margin:0 0 14px;}
+  pre{background:var(--panel); border:1px solid var(--hair); padding:12px 14px; overflow-x:auto;
+      font-size:12.5px; line-height:1.65; margin:0 0 14px;}
+  .ok{color:var(--ok);} .err{color:var(--err);}
+  .row{display:flex; gap:10px; flex-wrap:wrap; margin:0 0 16px;}
+  button{font:12.5px ui-monospace, Menlo, monospace; border:1px solid var(--ink); background:transparent;
+         color:var(--ink); padding:7px 14px; cursor:pointer;}
+  button:hover:not(:disabled){background:var(--ink); color:var(--bg);}
+  button:disabled{opacity:.35; cursor:default;}
+  details{margin:0 0 14px;} summary{cursor:pointer; color:var(--dim);}
+  footer{border-top:1px solid var(--hair); margin-top:44px; padding-top:14px; font-size:12px; color:var(--dim);}
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="mark">CFP<span>·</span> The Primitive</div>
-  <div class="nav"><a href="./index.html">← All pages</a></div>
+<div class="page">
+<header>
+  <span class="t">CFP / primitive</span>
+  <nav>
+    <a href="./index.html">index</a>
+    <a href="./profile-address.html">address</a>
+    <a href="./try-to-break-it.html">break-it</a>
+  </nav>
+</header>
+
+<h1>The lifecycle: mint → attenuate → redeem → revoke / replay</h1>
+<p>This page imports <code>mint</code>, <code>attenuate</code>, <code>verify</code> and
+<code>NonceLedger</code> from the transformed
+<a href="./assets/js/packages/capability/src/capability.js">packages/capability</a> module and runs
+them directly. No address appears anywhere here — the caveat set
+(<code>pairwiseId, purpose, maxUnits, fulfiller, expiresAt, singleUse, consentRef,
+channelKind</code>) is attribute-free by construction; the profile decides what a "unit" is.</p>
+
+<div class="row">
+  <button id="b-mint">mint</button>
+  <button id="b-att" disabled>attenuate maxUnits 5→2</button>
+  <button id="b-widen" disabled>attenuate maxUnits →50 (must fail)</button>
+  <button id="b-redeem" disabled>redeem</button>
+  <button id="b-replay" disabled>replay (must fail)</button>
+  <button id="b-revoke" disabled>revoke, then redeem (must fail)</button>
 </div>
-<div class="wrap">
-  <div class="eyebrow">Attribute-agnostic — no address on this page, anywhere</div>
-  <h1>Mint → attenuate → redeem → revoke / replay.</h1>
-  <p class="lede">This walkthrough runs the generic <code>FulfilmentGrant</code> lifecycle exactly as <code>packages/capability</code> defines it, live in your browser, against a confidential payload that could be an address, a phone number, or anything else — this page deliberately never says which.</p>
 
-  <div class="row">
-    <button id="btn-mint">1. Mint a grant</button>
-    <button id="btn-attenuate" disabled>2. Attenuate (narrow)</button>
-    <button id="btn-widen" disabled class="danger">2b. Try to widen it</button>
-    <button id="btn-redeem" disabled>3. Redeem</button>
-    <button id="btn-replay" disabled class="danger">4. Replay it</button>
-  </div>
+<pre id="grant">// mint to begin — output below is live, not recorded</pre>
+<pre id="log">—</pre>
 
-  <pre id="grant-json">// press "Mint a grant"</pre>
-  <div class="log" id="log">Nothing has happened yet.</div>
+<section>
+  <h2>Notes</h2>
+  <p>The MAC covers <code>{id, caveats, chain}</code> — <code>id</code> is signed material because
+  single-use enforcement (<code>NonceLedger.burn</code>) is keyed on it alone; a MAC that didn't
+  cover it would let a holder mint unlimited "single-use" tokens by swapping ids.
+  <code>attenuate()</code> may only tighten: <code>assertNotWidened</code> rejects any increase in
+  <code>maxUnits</code>/<code>expiresAt</code>, any <code>pairwiseId</code> change, any
+  <code>singleUse</code> relaxation, and <em>any</em> purpose change — the one sanctioned
+  transition (delivery → return) lives in <code>attenuateToReturn()</code>, reachable only through
+  <code>Platform.createReturn</code>. A replayed grant and a revoked one throw the same
+  <code>CapabilityBurned</code> — the holder cannot tell "already used" from "the subject pulled
+  it". Pinned in Node by <code>tests/grant-core/</code> (INV-3, INV-11).</p>
+  <details><summary>show the module this page is running (generated from packages/capability/src/capability.ts)</summary>
+    <pre id="src">loading…</pre>
+  </details>
+</section>
 
-  <p class="fine">Every action above calls the same HMAC-over-{id,caveats,chain} shape <code>packages/capability/src/capability.ts</code>'s <code>mint()</code>/<code>attenuate()</code>/<code>verify()</code> use — re-derived in this page's own JS because the demo runs with no build step and no bundler, the same "client-side crypto" pattern the SDK widget uses. The narrowing check (attenuation may only ever tighten <code>maxUnits</code>/<code>expiresAt</code>/<code>singleUse</code>, never change <code>pairwiseId</code> or <code>purpose</code>) is copied verbatim from <code>assertNotWidened()</code>.</p>
+<footer>Provenance: modules under <a href="./assets/js/manifest.json">./assets/js/</a> are the repo
+sources, type-stripped, imports rewritten; <code>node:crypto</code> → a shim verified against
+<code>node:crypto</code> at build time. See <a href="./index.html#provenance">index § provenance</a>.</footer>
 </div>
-<script>
-let secret, grant, burned = false;
 
-function randHex(n){ const b=new Uint8Array(n); crypto.getRandomValues(b); return [...b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
-async function hmac(secretBytes, msg) {
-  const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
-  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
-async function macOf(id, caveats, chain){ return hmac(secret, JSON.stringify({ id, caveats, chain })); }
-function render(){ document.getElementById('grant-json').textContent = JSON.stringify(grant, null, 2); }
-function logLine(html){ document.getElementById('log').innerHTML = html; }
-function setBtns(o){ for (const [id,v] of Object.entries(o)) document.getElementById(id).disabled = !v; }
+<script type="module">
+import { mint, attenuate, verify, NonceLedger, CapabilityBurned }
+  from "./assets/js/packages/capability/src/capability.js";
+import { randomBytes } from "./assets/js/node-crypto.js";
 
-document.getElementById('btn-mint').addEventListener('click', async () => {
-  secret = crypto.getRandomValues(new Uint8Array(32));
-  burned = false;
-  const id = randHex(16);
-  const caveats = { pairwiseId: "CFP-" + randHex(4).toUpperCase(), purpose: "delivery", maxUnits: 5, fulfiller: "demo-fulfiller", expiresAt: Date.now()+60000, singleUse: true, consentRef: "cns_"+randHex(6), channelKind: "door" };
-  const chain = ["authority"];
-  const mac = await macOf(id, caveats, chain);
-  grant = { id, caveats, chain, mac };
-  render();
-  logLine('<span class="ok">✓ minted.</span> maxUnits=5, singleUse=true, expiresAt set 60s out.');
-  setBtns({ 'btn-attenuate': true, 'btn-widen': true, 'btn-redeem': true, 'btn-replay': false });
-});
+let secret, grant, nonces;
+const $ = (id) => document.getElementById(id);
+const show = () => { $("grant").textContent = JSON.stringify(grant, null, 2); };
+const log = (html) => { $("log").innerHTML = html; };
+const enable = (ids) => ["b-mint","b-att","b-widen","b-redeem","b-replay","b-revoke"]
+  .forEach((b) => { $(b).disabled = !ids.includes(b); });
 
-document.getElementById('btn-attenuate').addEventListener('click', async () => {
-  const next = { ...grant.caveats, maxUnits: 2 };
-  const chain = [...grant.chain, "agent-narrow"];
-  const mac = await macOf(grant.id, next, chain);
-  grant = { ...grant, caveats: next, chain, mac };
-  render();
-  logLine('<span class="ok">✓ attenuated.</span> maxUnits narrowed 5 → 2. Same id, same pairwiseId, new mac.');
-});
+$("b-mint").onclick = () => {
+  secret = randomBytes(32);
+  nonces = new NonceLedger();
+  grant = mint(secret, {
+    pairwiseId: "CFP-DEMO-PAIR", purpose: "delivery", maxUnits: 5,
+    fulfiller: "demo-fulfiller", expiresAt: Date.now() + 300000,
+    singleUse: true, consentRef: "cns_demo", channelKind: "door",
+  });
+  show();
+  log(`mint(secret, caveats) → chain=["authority"], mac over {id, caveats, chain}`);
+  enable(["b-mint","b-att","b-widen","b-redeem","b-revoke"]);
+};
 
-document.getElementById('btn-widen').addEventListener('click', async () => {
-  logLine('<span class="fail">✗ AttenuationWidened.</span> maxUnits cannot exceed the current grant\'s value — the narrowing check (assertNotWidened) rejects this before any mac is even computed. Nothing changed above.');
-});
+$("b-att").onclick = () => {
+  grant = attenuate(secret, grant, { maxUnits: 2 }, "merchant→courier");
+  show();
+  log(`attenuate(maxUnits: 2) → <span class="ok">ok</span> — chain=${JSON.stringify(grant.chain)}, fresh mac, same id`);
+};
 
-document.getElementById('btn-redeem').addEventListener('click', async () => {
-  if (burned) { logLine('<span class="fail">✗ CapabilityBurned.</span> This grant was already redeemed once — single-use, enforced by a nonce burn keyed on `id`.'); return; }
-  const expected = await macOf(grant.id, grant.caveats, grant.chain);
-  if (expected !== grant.mac) { logLine('<span class="fail">✗ CapabilityInvalid — bad mac.</span>'); return; }
-  if (Date.now() > grant.caveats.expiresAt) { logLine('<span class="fail">✗ CapabilityExpired.</span>'); return; }
-  burned = true;
-  logLine('<span class="ok">✓ redeemed.</span> Vault would now write an audit record (actor, purpose, consentRef) BEFORE any decryption, then route and return only a routing code — never the payload.');
-  setBtns({ 'btn-attenuate': false, 'btn-widen': false, 'btn-redeem': false, 'btn-replay': true });
-});
+$("b-widen").onclick = () => {
+  try {
+    grant = attenuate(secret, grant, { maxUnits: 50 }, "widener");
+    log(`<span class="err">BUG: widening succeeded — this must never print</span>`);
+  } catch (e) {
+    log(`attenuate(maxUnits: 50) → <span class="err">${e.constructor.name}: ${e.message}</span> — rejected before any mac is computed; the grant above is unchanged`);
+  }
+};
 
-document.getElementById('btn-replay').addEventListener('click', async () => {
-  logLine('<span class="fail">✗ CapabilityBurned.</span> Same error class a revoked grant would throw — a holder cannot distinguish "already used" from "the subject pulled it" from the error alone. See spec §4.');
-});
+$("b-redeem").onclick = () => {
+  try {
+    verify(secret, grant);
+    nonces.burn(grant.id);
+    log(`verify(secret, grant) → <span class="ok">ok</span>; NonceLedger.burn("${grant.id.slice(0,8)}…") → burned. In the full pipeline the vault writes the audit record BEFORE decrypting — see <a href="./profile-address.html">profile-address</a>.`);
+    enable(["b-mint","b-replay"]);
+  } catch (e) {
+    log(`<span class="err">${e.constructor.name}: ${e.message}</span>`);
+  }
+};
+
+$("b-replay").onclick = () => {
+  try {
+    verify(secret, grant);
+    nonces.burn(grant.id);
+    log(`<span class="err">BUG: replay succeeded — this must never print</span>`);
+  } catch (e) {
+    log(`replay → <span class="err">${e.constructor.name}</span> — same error class a revoked grant throws (deliberate: holder cannot distinguish the two)`);
+    enable(["b-mint"]);
+  }
+};
+
+$("b-revoke").onclick = () => {
+  nonces.revoke(grant.id);
+  try {
+    verify(secret, grant);
+    nonces.burn(grant.id);
+    log(`<span class="err">BUG: redeemed a revoked grant — this must never print</span>`);
+  } catch (e) {
+    log(`revoke() then redeem → <span class="err">${e.constructor.name}</span> — consumer-initiated revocation is effective mid-flight`);
+    enable(["b-mint"]);
+  }
+};
+
+fetch("./assets/js/packages/capability/src/capability.js")
+  .then((r) => r.text()).then((t) => { $("src").textContent = t; })
+  .catch(() => { $("src").textContent = "(fetch blocked — open ./assets/js/packages/capability/src/capability.js directly)"; });
 </script>
 </body>
 </html>

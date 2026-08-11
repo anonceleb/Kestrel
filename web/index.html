@@ -5,108 +5,148 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CFP — Confidential Fulfilment Profile</title>
 <style>
-  :root{
-    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
-    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --red-dark:#A5010F;
-    --divider:rgba(22,22,22,.14); --divider-strong:rgba(22,22,22,.28); --ok:#1F6F43;
-  }
+  :root{ --ink:#1a1a1a; --dim:#6b6b6b; --hair:#d9d5cc; --bg:#fbfaf7; --panel:#f3f1ea; --ok:#1f6f43; --err:#a3232e; }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing:antialiased;}
-  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
-  .mark{font-weight:800; letter-spacing:.02em; font-size:18px;}
-  .mark span{color:var(--red);}
-  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:22px;}
-  .nav a:hover{color:var(--ink);}
-  .wrap{max-width:980px; margin:0 auto; padding:64px 24px 80px;}
-  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; align-items:center; gap:8px; margin-bottom:22px; border:1px solid var(--red); padding:6px 12px;}
-  h1{font-weight:700; font-size:clamp(28px,5vw,42px); line-height:1.2; margin:0 0 18px; max-width:22ch;}
-  p.lede{font-size:16px; line-height:1.6; color:var(--ink-soft); max-width:60ch; margin:0 0 40px;}
-  .quote{border-left:3px solid var(--red); padding:4px 0 4px 18px; margin:0 0 48px; font-size:15px; color:var(--ink-soft); font-style:italic; max-width:56ch;}
-  .frame{background:var(--bg-raised); border:1px solid var(--divider); padding:22px 24px; margin:0 0 48px; max-width:68ch;}
-  .frame .k-eyebrow{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; font-weight:700;}
-  .frame p{font-size:14px; line-height:1.65; color:var(--ink-soft); margin:0;}
-  .frame p + p{margin-top:10px;}
-  .frame strong{color:var(--ink); font-weight:700;}
-  .lead-card{display:block; text-decoration:none; color:var(--ink); background:var(--ink); color:#fff; padding:32px 30px; margin-bottom:44px; position:relative; overflow:hidden;}
-  .lead-card .k-eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#ff8a8a; margin-bottom:12px; font-weight:700;}
-  .lead-card h2{font-size:26px; margin:0 0 10px;}
-  .lead-card p{font-size:14px; line-height:1.6; color:rgba(255,255,255,.75); max-width:56ch; margin:0 0 20px;}
-  .lead-card .go{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:#fff;}
-  .choice{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
-  @media(max-width:680px){.choice{grid-template-columns:1fr;}}
-  a.card{
-    display:flex; flex-direction:column; text-decoration:none; color:var(--ink);
-    background:var(--bg-raised); border:1px solid var(--divider);
-    padding:26px 24px; position:relative; overflow:hidden;
-    transition:border-color .18s ease;
-  }
-  a.card:hover{border-color:var(--ink);}
-  .card .k-eyebrow{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:12px; font-weight:600;}
-  .card h2{font-weight:800; font-size:18px; margin:0 0 10px;}
-  .card p{font-size:13.5px; line-height:1.6; color:var(--ink-soft); margin:0 0 20px;}
-  .card .go{font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--red); margin-top:auto;}
-  .foot{margin-top:56px; font-size:11.5px; letter-spacing:.04em; color:var(--ink-faint); line-height:1.8;}
-  .foot a{color:var(--ink-faint);}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:13.5px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  .page{max-width:880px; margin:0 auto; padding:28px 20px 80px;}
+  header{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap;
+         border-bottom:1px solid var(--ink); padding-bottom:10px; margin-bottom:34px;}
+  header .t{font-weight:700;}
+  nav a{color:var(--dim); text-decoration:none; margin-left:14px;}
+  nav a:hover{color:var(--ink); text-decoration:underline;}
+  h1{font-size:17px; margin:0 0 14px;}
+  p{max-width:76ch; margin:0 0 14px;}
+  .dim{color:var(--dim);}
+  a{color:var(--ink);}
+  section{border-top:1px solid var(--hair); margin-top:34px; padding-top:18px;}
+  section > h2{font-size:13.5px; margin:0 0 14px;}
+  pre{background:var(--panel); border:1px solid var(--hair); padding:12px 14px; overflow-x:auto;
+      font-size:12.5px; line-height:1.65; margin:0 0 14px;}
+  pre .ok{color:var(--ok);} pre .err{color:var(--err);} pre .dim{color:var(--dim);}
+  table{border-collapse:collapse; width:100%; margin:0 0 14px;}
+  td{border-top:1px solid var(--hair); padding:8px 12px 8px 0; vertical-align:top;}
+  td:first-child{white-space:nowrap; padding-right:24px;}
+  footer{border-top:1px solid var(--hair); margin-top:44px; padding-top:14px; font-size:12px; color:var(--dim);}
+  footer p{margin:0 0 8px; max-width:none;}
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="mark">CFP<span>·</span> Confidential Fulfilment Profile</div>
-  <div class="nav">
-    <a href="./candid-books.html">Candid books</a>
-    <a href="./try-to-break-it.html">Try to break it</a>
-  </div>
+<div class="page">
+<header>
+  <span class="t">CFP — Confidential Fulfilment Profile</span>
+  <nav>
+    <a href="./primitive.html">primitive</a>
+    <a href="./agentic-flow.html">agentic-flow</a>
+    <a href="./profile-address.html">address</a>
+    <a href="./profile-contact.html">contact</a>
+    <a href="./try-to-break-it.html">break-it</a>
+    <a href="./candid-books.html">candid-books</a>
+  </nav>
+</header>
+
+<h1>A capability to act on a sensitive attribute — never the attribute itself.</h1>
+<p>A <b>FulfilmentGrant</b> is a scoped, expiring, single-use, revocable, narrowing-only token
+that lets a counterparty cause an action (route a parcel, connect a call) against an attribute
+it never holds. The grant core carries no address vocabulary — address is its first attribute
+profile, contact/phone the second. Scope note: CFP begins <em>after</em> discovery; there is no
+search, catalog, or <code>select</code>-shaped code in this repo, by design.</p>
+<p class="dim">Audience: protocol stewards evaluating whether an open network's grammar should
+carry this primitive. This is a proof of mechanism, not a product. Open problems are listed with
+the same prominence as closed ones — see <a href="./candid-books.html">candid-books</a>.</p>
+
+<section>
+  <h2>0. This page just ran the repo's code</h2>
+  <p class="dim">The modules under <code>packages/</code> and <code>services/</code> are transformed
+  1:1 for the browser at build time (types stripped by Node's own stripper; <code>node:crypto</code>
+  swapped for a shim that is verified against <code>node:crypto</code> byte-for-byte before every
+  emit). The transcript below is produced live, on load, by those modules — reload and the ids,
+  MACs and signatures change.</p>
+  <pre id="boot">booting…</pre>
+</section>
+
+<section>
+  <h2>1. Verify locally</h2>
+  <pre>git clone &lt;this repo&gt; &amp;&amp; cd cfp-demo
+npm run verify     <span class="dim"># privacy-lint + 52 invariant tests. Node ≥ 22.6, no dependencies, no network.</span>
+npm run demo       <span class="dim"># narrated end-to-end grant lifecycle</span>
+npm run build:web  <span class="dim"># regenerates web/assets/js — refuses to emit if the shim diverges from node:crypto</span></pre>
+</section>
+
+<section>
+  <h2>2. Pages</h2>
+  <table>
+    <tr><td><a href="./primitive.html">primitive</a></td>
+        <td>The generic lifecycle — mint → attenuate (narrowing-only) → redeem → revoke/replay —
+        against <code>packages/capability</code>. Deliberately attribute-free.</td></tr>
+    <tr><td><a href="./agentic-flow.html">agentic-flow</a></td>
+        <td>ACP checkout as shipped (plaintext <code>fulfillment_address</code> next to tokenized
+        payment) vs. the same request carrying a grant. The asymmetry is structural.</td></tr>
+    <tr><td><a href="./profile-address.html">profile-address</a></td>
+        <td>The full pipeline, in-browser: Beckn-signed registry writes, ChaCha20-Poly1305 vault
+        records, DIGIPIN-bucketed routing, COSE_Sign1 offline labels, audited resolve,
+        crypto-shredding. Plus the conservative RTO economics.</td></tr>
+    <tr><td><a href="./profile-contact.html">profile-contact</a></td>
+        <td>Number-masking through the identical grant core — same type, same
+        <code>mint/attenuate/verify</code>, different <code>RoutingPort</code>.</td></tr>
+    <tr><td><a href="./try-to-break-it.html">try-to-break-it</a></td>
+        <td>Eight attacks against the live objects on the page. Each fails with the real error
+        class, cross-referenced to the Node test that pins it.</td></tr>
+    <tr><td><a href="./candid-books.html">candid-books</a></td>
+        <td>Five threat-model gaps closed (with the tests that prove it), three still open, and
+        the twelve-month stewardship hand-over clause, verbatim.</td></tr>
+    <tr><td><a href="../spec/CFP-v0.x.md">spec/CFP-v0.x.md</a></td>
+        <td>The pilot-scoped interface note. Submitted nowhere.</td></tr>
+  </table>
+</section>
+
+<footer id="provenance">
+  <p>Every interactive element on these pages imports the repo's own modules from
+  <a href="./assets/js/manifest.json">./assets/js/</a> — per-file source SHA-256 in the manifest,
+  transform is type-strip + import rewrite only (<code>tools/web-build/build.ts</code>). The one
+  substitution is <code>node:crypto</code> → <a href="./assets/js/node-crypto.js">a pure-JS shim</a>;
+  the build runs 63 equivalence checks against <code>node:crypto</code> (digests, AEAD both
+  directions, Ed25519 cross-verification) and aborts on any mismatch. Runs fully offline behind
+  any static file server (<code>python3 -m http.server</code> from <code>web/</code>) — browsers
+  require an HTTP origin for ES modules, but no network request ever leaves the page.</p>
+</footer>
 </div>
-<div class="wrap">
-  <div class="eyebrow">Runs entirely offline — nothing here is staged</div>
-  <h1>A capability to act on a sensitive attribute — never the attribute itself.</h1>
-  <p class="lede">A scoped, expiring, single-use, revocable, non-widening grant is the core primitive; address is its first attribute profile, contact/phone its second. Six pages, all running their own cryptography live in your browser.</p>
-  <p class="quote">"Yes to the primitive. No to the layer. Not yet to the extension." — the FIDE convergence memo this demo executes.</p>
 
-  <div class="frame">
-    <div class="k-eyebrow">Who this is for</div>
-    <p>This is the demo we'd walk a <strong>Beckn/FIDE protocol steward</strong> through if we were pitching them on adopting a generic privacy primitive into the network grammar — not a product demo, not a sales deck. Nobody in that room buys anything; they decide whether an open network's spec should carry this capability.</p>
-    <p>What follows proves one claim, six ways: <strong>a scoped, expiring, single-use, revocable, non-widening grant lets a counterparty act on a sensitive attribute without ever holding it.</strong> There is no production system or real deployment behind these pages — this is a proof-of-primitive, verifiable adversarially in your own browser, not a proof-of-product.</p>
-  </div>
+<script type="module">
+import { mint, verify, attenuate, NonceLedger } from "./assets/js/packages/capability/src/capability.js";
+import { newRootSecret, derivePairwiseId } from "./assets/js/packages/identity/src/pairwise.js";
+import { Kms, seal, open } from "./assets/js/packages/crypto/src/envelope.js";
+import { randomBytes } from "./assets/js/node-crypto.js";
 
-  <a class="lead-card" href="./agentic-flow.html">
-    <div class="k-eyebrow">Start here — the lead demo</div>
-    <h2>The agentic flow</h2>
-    <p>An ACP-style checkout carrying a plaintext address, side by side with the same checkout where the agent holds a delivery capability instead. The industry already agreed agents hold scoped tokens, not card numbers — this applies the same conclusion to the address.</p>
-    <span class="go">Open the comparison →</span>
-  </a>
+const out = [];
+const secret = randomBytes(32);
+const root = newRootSecret();
+const pid = derivePairwiseId(root, "operator.example");
+out.push(`derivePairwiseId(root, "operator.example")  = ${pid}`);
 
-  <div class="choice">
-    <a class="card" href="./primitive.html">
-      <div class="k-eyebrow">Attribute-agnostic</div>
-      <h2>The primitive</h2>
-      <p>Mint → attenuate (visibly narrowing-only) → redeem → revoke/replay. No address anywhere on this page, on purpose.</p>
-      <span class="go">Walk the lifecycle →</span>
-    </a>
-    <a class="card" href="./profile-address.html">
-      <div class="k-eyebrow">Attribute profile #1</div>
-      <h2>Address (India Post)</h2>
-      <p>An ONDC-logistics-shaped flow: DIGIPIN routing, an offline COSE scan, and the RTO unit-economics case, conservative and cited.</p>
-      <span class="go">See the postal flow →</span>
-    </a>
-    <a class="card" href="./profile-contact.html">
-      <div class="k-eyebrow">Attribute profile #2</div>
-      <h2>Contact (mobility)</h2>
-      <p>Number-masking via the identical grant core — a driver "calls" a rider through a capability, both numbers stay vault-side.</p>
-      <span class="go">See the mobility flow →</span>
-    </a>
-    <a class="card" href="./try-to-break-it.html">
-      <div class="k-eyebrow">For the skeptical reader</div>
-      <h2>Try to break it</h2>
-      <p>Replay, widen-attempt, correlation, narrow-cohort, unaudited-decrypt — each wired to the real primitives, each failing with the named invariant on screen.</p>
-      <span class="go">Open the attack console →</span>
-    </a>
-  </div>
+const grant = mint(secret, { pairwiseId: pid, purpose: "delivery", maxUnits: 1,
+  fulfiller: "standard", expiresAt: Date.now() + 60000, singleUse: true,
+  consentRef: "cns_boot", channelKind: "door" });
+verify(secret, grant);
+out.push(`mint() → verify()                            <span class="ok">ok</span>  id=${grant.id.slice(0,8)}… mac=${grant.mac.slice(0,16)}…`);
 
-  <div class="foot">
-    <div><a href="./candid-books.html">Candid books</a> — five threat-model gaps closed, what's still open, and the date-certain stewardship commitment, stated verbatim.</div>
-    <div><a href="../spec/CFP-v0.x.md">spec/CFP-v0.x.md</a> — the pilot-scoped interface note. Submitted nowhere.</div>
-  </div>
-</div>
+const nonces = new NonceLedger();
+nonces.burn(grant.id);
+try { nonces.burn(grant.id); } catch (e) {
+  out.push(`replay same id                               <span class="err">${e.constructor.name}</span>`);
+}
+try { attenuate(secret, grant, { maxUnits: 99 }, "widener"); } catch (e) {
+  out.push(`attenuate(maxUnits 1 → 99)                   <span class="err">${e.constructor.name}: ${e.message}</span>`);
+}
+
+const kms = new Kms();
+const box = seal(kms, "tenant", "rec-boot", JSON.stringify({ demo: true }));
+out.push(`seal() ChaCha20-Poly1305                     keyId=${box.keyId} tag=${box.tag.slice(0,12)}…`);
+kms.shred("rec-boot");
+try { open(kms, "tenant", "rec-boot", box); } catch (e) {
+  out.push(`open() after shred                           <span class="err">${e.constructor.name}</span> — ciphertext is permanently dead`);
+}
+document.getElementById("boot").innerHTML = out.join("\n");
+</script>
 </body>
 </html>

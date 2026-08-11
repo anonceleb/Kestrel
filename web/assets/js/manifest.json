@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-08-11T12:19:57.701Z",
+  "selftestChecks": 63,
+  "note": "Each emitted module is the named repo source with types stripped and import specifiers rewritten. node-crypto.js is the browser shim, verified against node:crypto by tools/web-build/build.ts before emit.",
+  "files": [
+    {
+      "source": "packages/capability/src/capability.ts",
+      "emitted": "web/assets/js/packages/capability/src/capability.js",
+      "sourceSha256": "f6e86e4e215fc9f4b0202e8889b28179fd6e360975b0a7cd785f5f7ad1e371f3"
+    },
+    {
+      "source": "packages/core/src/core.ts",
+      "emitted": "web/assets/js/packages/core/src/core.js",
+      "sourceSha256": "7cded544491c54b87667d80b3ff46787af8595347ac2208819581967e726f8e7"
+    },
+    {
+      "source": "packages/crypto/src/envelope.ts",
+      "emitted": "web/assets/js/packages/crypto/src/envelope.js",
+      "sourceSha256": "4edddbe714a242b4033d932b5bbc20d6d415ae84fa6b3b161ccc521f14949dae"
+    },
+    {
+      "source": "packages/directory/src/directory.ts",
+      "emitted": "web/assets/js/packages/directory/src/directory.js",
+      "sourceSha256": "d8c346ea3a71de02306611b4d0d51dd3c96c9607242765c37ee57e776d7df45e"
+    },
+    {
+      "source": "packages/identity/src/pairwise.ts",
+      "emitted": "web/assets/js/packages/identity/src/pairwise.js",
+      "sourceSha256": "812869eadd70499b6ab608336e628a17372de0b89c6545e77e18422f65793bd6"
+    },
+    {
+      "source": "packages/labels/src/cbor.ts",
+      "emitted": "web/assets/js/packages/labels/src/cbor.js",
+      "sourceSha256": "008185972a1d61d7e43bbb08d77b5f18a85ffce4879139e6566daf06408deaca"
+    },
+    {
+      "source": "packages/labels/src/keyring.ts",
+      "emitted": "web/assets/js/packages/labels/src/keyring.js",
+      "sourceSha256": "88f61c9c3f0c79bc31466f066ef4112b5a2f5efd2f1c72a33be2ed851861f52f"
+    },
+    {
+      "source": "packages/labels/src/label.ts",
+      "emitted": "web/assets/js/packages/labels/src/label.js",
+      "sourceSha256": "32ce8cca894401c773e0d6b553bc50c1aa0a4f9206cdbb67db957b0955555d21"
+    },
+    {
+      "source": "packages/metering/src/meter.ts",
+      "emitted": "web/assets/js/packages/metering/src/meter.js",
+      "sourceSha256": "e85a84ed4020eb6ca4f9bf6d5e32327db37bf27f07569320e8af63331a13ac4c"
+    },
+    {
+      "source": "packages/network/src/exchange.ts",
+      "emitted": "web/assets/js/packages/network/src/exchange.js",
+      "sourceSha256": "2868d3e493fdb692adb0289b9cb682bf3f013a891aa07efbad3d60bb1ebf00d9"
+    },
+    {
+      "source": "packages/policy/src/policy.ts",
+      "emitted": "web/assets/js/packages/policy/src/policy.js",
+      "sourceSha256": "3b6ea1a471e434403dba4b1d97140ca20045ad26619b2713d24932370ce84d1e"
+    },
+    {
+      "source": "packages/registry/src/signing.ts",
+      "emitted": "web/assets/js/packages/registry/src/signing.js",
+      "sourceSha256": "d73d11d9ab8d6c76c86e1b206bfe2b6c700fd433937ab269aa4c0d8c5f3afaa2"
+    },
+    {
+      "source": "packages/sdk/src/client.ts",
+      "emitted": "web/assets/js/packages/sdk/src/client.js",
+      "sourceSha256": "a5cbed1968df3dccb02d3e56f7f9b32b088a20c3a4fda082f82e78b9535957de"
+    },
+    {
+      "source": "packages/webhooks/src/webhook.ts",
+      "emitted": "web/assets/js/packages/webhooks/src/webhook.js",
+      "sourceSha256": "1679af58063d5dbf9c5cb79d1460a154c0f6e5777fa3d37a4e87d1687e392a7c"
+    },
+    {
+      "source": "services/platform/src/platform.ts",
+      "emitted": "web/assets/js/services/platform/src/platform.js",
+      "sourceSha256": "389545ccff1f10ae34cb356686bbf41bba9c19cc8d2805d21e16a445424998ab"
+    },
+    {
+      "source": "services/vault/src/vault.ts",
+      "emitted": "web/assets/js/services/vault/src/vault.js",
+      "sourceSha256": "a6806162c676a2d5b6bdc16722b3b748c82472aa294e00cc53ae87c2c56acc2f"
+    },
+    {
+      "source": "profiles/address/src/address.ts",
+      "emitted": "web/assets/js/profiles/address/src/address.js",
+      "sourceSha256": "e138b024b220591d9749c26577913785263aa81b3a11e5c6fcad6969cc2435a7"
+    },
+    {
+      "source": "profiles/contact/src/contact.ts",
+      "emitted": "web/assets/js/profiles/contact/src/contact.js",
+      "sourceSha256": "ff10bd0a5038084725d00ca7122cc26c51a17b1441e31792dc8354722f964265"
+    },
+    {
+      "source": "adapters/dakhil-post/src/adapter.ts",
+      "emitted": "web/assets/js/adapters/dakhil-post/src/adapter.js",
+      "sourceSha256": "9a1f01bb106d00b1cc6c3827a2052430fa97ce169f5a432eb04008711b2cfd19"
+    },
+    {
+      "source": "adapters/india-post/src/adapter.ts",
+      "emitted": "web/assets/js/adapters/india-post/src/adapter.js",
+      "sourceSha256": "bdc23f7dcb41aa5bd69cb664a3ae9ecac198cec8e7c5073e92f38b548e90440e"
+    },
+    {
+      "source": "adapters/postal-meridia/src/adapter.ts",
+      "emitted": "web/assets/js/adapters/postal-meridia/src/adapter.js",
+      "sourceSha256": "e0c2c07cf8b9da25346b116e37c1d5f0cbcc42ef66cf9cd0adc56408e5688fe2"
+    }
+  ]
+}

@@ -15,8 +15,10 @@ both is generic.
 Node ≥ 22.6 only — TypeScript executes via native type stripping.
 
 ```bash
-npm run verify   # privacy-lint + grant-core + profile invariant suites
-npm run demo     # narrated end-to-end grant lifecycle
+npm run verify     # privacy-lint + grant-core + profile invariant suites
+npm run demo       # narrated end-to-end grant lifecycle
+npm run build:web  # regenerate web/assets/js from the sources (shim selftest gates the emit)
+cd web && python3 -m http.server 8741   # then open http://localhost:8741 — the demo is static files
 ```
 
 ## Design choices
@@ -42,11 +44,19 @@ npm run demo     # narrated end-to-end grant lifecycle
   `profiles/address` and a `profiles/contact` (phone-number masking,
   mobility-shaped) that reuses the identical `FulfilmentGrant`
   mint/attenuate/redeem path with no forked token logic.
-- **The demo surface** (`web/`) targets a protocol-steward audience rather
-  than a merchant one: the agentic-checkout comparison leads, an attack
-  console lets a skeptical reader try to break the primitive in the
-  browser, and a candid-books page states what's closed, what's still open,
-  and the stewardship commitment verbatim.
+- **The demo surface** (`web/`) runs the repo's own modules in the browser,
+  not a re-implementation. `npm run build:web` transforms every source under
+  `packages/`, `services/`, `profiles/`, and `adapters/` 1:1 into browser ES
+  modules (Node's own type-stripper; import specifiers rewritten; nothing
+  else), swapping `node:crypto` for a pure-JS shim that the build first
+  verifies against `node:crypto` itself — 63 equivalence checks covering
+  digests byte-for-byte, ChaCha20-Poly1305 in both directions, and Ed25519
+  cross-verification — and refuses to emit on any mismatch. The result: the
+  attack console throws the real error classes from the real `Vault`, the
+  address page mints real Beckn-signed envelopes and COSE_Sign1 labels
+  client-side, and `web/assets/js/manifest.json` records the SHA-256 of the
+  source behind every emitted module, so "the demo runs the donated code" is
+  checkable, not asserted.
 
 ## Scope: where CFP begins
 
@@ -96,8 +106,9 @@ tests/
 tools/
   privacy-lint/    CI gate: core purity, zone-3 shape, log hygiene across packages/services/adapters/profiles
   demo/            narrated walkthrough
+  web-build/       emits web/assets/js from the real sources; shim selftest against node:crypto gates the emit
 spec/CFP-v0.x.md   the pilot-scoped interface note — submitted nowhere
-web/               the six-page browser demo
+web/               the browser demo — six pages driving the modules under web/assets/js
 ```
 
 ## Deploy recipe
@@ -112,9 +123,11 @@ vercel                   # bind a new Vercel project to the new GitHub repo
 
 Live at [kestrel-ebon.vercel.app](https://kestrel-ebon.vercel.app/index.html).
 
-No serverless functions are required — `web/` is static HTML with inline
-CSS/JS, and every page has a working client-side fallback so the "runs
-entirely offline" property holds throughout.
+No serverless functions are required — `web/` is static HTML plus the
+generated modules under `web/assets/js/` (committed, so Vercel needs no
+build step). The pages make no network requests beyond loading their own
+modules, so the "runs entirely offline" property holds behind any static
+file server.
 
 ## Tone
 

@@ -3,94 +3,243 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CFP — Profile: Address (India Post)</title>
+<title>CFP — profile-address</title>
 <style>
-  :root{
-    --bg:#ffffff; --bg-raised:#F6F4EF; --ink:#161616; --ink-soft:rgba(22,22,22,.66);
-    --ink-faint:rgba(22,22,22,.46); --red:#D0021B; --ok:#1F6F43; --divider:rgba(22,22,22,.14);
-  }
+  :root{ --ink:#1a1a1a; --dim:#6b6b6b; --hair:#d9d5cc; --bg:#fbfaf7; --panel:#f3f1ea; --ok:#1f6f43; --err:#a3232e; }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Helvetica Neue', Arial, sans-serif;}
-  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px clamp(20px,5vw,72px); border-bottom:1px solid var(--divider);}
-  .mark{font-weight:800; font-size:18px;} .mark span{color:var(--red);}
-  .nav a{color:var(--ink-soft); text-decoration:none; font-size:13px; margin-left:18px;}
-  .wrap{max-width:960px; margin:0 auto; padding:56px 24px 90px;}
-  .eyebrow{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--red); display:inline-flex; gap:8px; margin-bottom:20px; border:1px solid var(--red); padding:6px 12px;}
-  h1{font-size:clamp(26px,4.4vw,36px); margin:0 0 14px; max-width:26ch;}
-  p.lede{font-size:15px; line-height:1.65; color:var(--ink-soft); max-width:66ch; margin:0 0 40px;}
-  h2.section{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); border-top:1px solid var(--divider); padding-top:36px; margin:44px 0 18px;}
-  .flow{display:flex; gap:0; overflow-x:auto; border:1px solid var(--divider); background:var(--bg-raised);}
-  .hop{flex:1; min-width:150px; padding:16px; border-right:1px solid var(--divider); font-size:12.5px;}
-  .hop:last-child{border-right:none;}
-  .hop .who{font-weight:700; margin-bottom:6px;}
-  .hop .what{color:var(--ink-soft); line-height:1.5;}
-  .hop .plain{color:var(--red); font-size:11px; margin-top:8px; font-weight:600;}
-  pre{background:#1c1c1c; color:#d8d8d8; font-size:12px; line-height:1.6; padding:16px; overflow-x:auto; margin:0 0 14px;}
-  .row{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
-  .row button{font-size:13px; font-weight:600; padding:9px 16px; border:1px solid var(--ink); background:#fff; cursor:pointer;}
-  .log{border:1px solid var(--divider); background:var(--bg-raised); padding:14px 16px; font-size:13px; line-height:1.8; min-height:30px;}
-  .log .ok{color:var(--ok); font-weight:700;} .log .fail{color:var(--red); font-weight:700;}
-  table{width:100%; border-collapse:collapse; font-size:13.5px; margin:10px 0 12px;}
-  td, th{border:1px solid var(--divider); padding:9px 12px; text-align:left;}
-  th{background:var(--bg-raised); font-weight:700;}
-  .verdict{font-size:15px; font-weight:700; margin-top:12px;}
-  .cite{font-size:11.5px; color:var(--ink-faint); line-height:1.7; margin-top:10px;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:13.5px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  .page{max-width:920px; margin:0 auto; padding:28px 20px 80px;}
+  header{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap;
+         border-bottom:1px solid var(--ink); padding-bottom:10px; margin-bottom:34px;}
+  header .t{font-weight:700;}
+  nav a{color:var(--dim); text-decoration:none; margin-left:14px;}
+  nav a:hover{color:var(--ink); text-decoration:underline;}
+  h1{font-size:17px; margin:0 0 14px;}
+  p{max-width:78ch; margin:0 0 14px;}
+  .dim{color:var(--dim);}
+  a{color:var(--ink);}
+  section{border-top:1px solid var(--hair); margin-top:30px; padding-top:18px;}
+  section > h2{font-size:13.5px; margin:0 0 12px;}
+  pre{background:var(--panel); border:1px solid var(--hair); padding:12px 14px; overflow-x:auto;
+      font-size:12px; line-height:1.6; margin:0 0 12px; white-space:pre-wrap; word-break:break-all;}
+  pre.keep{white-space:pre; word-break:normal;}
+  .ok{color:var(--ok);} .err{color:var(--err);}
+  button{font:12.5px ui-monospace, Menlo, monospace; border:1px solid var(--ink); background:transparent;
+         color:var(--ink); padding:7px 14px; cursor:pointer; margin:0 8px 10px 0;}
+  button:hover:not(:disabled){background:var(--ink); color:var(--bg);}
+  button:disabled{opacity:.35; cursor:default;}
+  table{border-collapse:collapse; width:100%; margin:0 0 12px; font-size:12.5px;}
+  td, th{border:1px solid var(--hair); padding:7px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--panel); font-weight:700;}
+  footer{border-top:1px solid var(--hair); margin-top:44px; padding-top:14px; font-size:12px; color:var(--dim);}
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="mark">CFP<span>·</span> Address Profile</div>
-  <div class="nav"><a href="./index.html">← All pages</a></div>
-</div>
-<div class="wrap">
-  <div class="eyebrow">Attribute profile #1 — postal fulfilment, DIGIPIN-shaped</div>
-  <h1>An ONDC-logistics-style flow: seller app → LSP, token as an optional payload.</h1>
-  <p class="lede">Pilot design, not a protocol rewrite: the capability rides as an optional field inside an existing Beckn <code>action</code>/<code>on_action</code> pair, with the plaintext-address path visibly preserved as a fallback. Nothing here requires every participant to upgrade on day one.</p>
+<div class="page">
+<header>
+  <span class="t">CFP / profile-address</span>
+  <nav>
+    <a href="./index.html">index</a>
+    <a href="./primitive.html">primitive</a>
+    <a href="./try-to-break-it.html">break-it</a>
+  </nav>
+</header>
 
-  <h2 class="section">The hop-by-hop flow</h2>
-  <div class="flow">
-    <div class="hop"><div class="who">Seller app</div><div class="what"><code>on_select</code> carries a delivery capability alongside the normal fulfilment block.</div><div class="plain">plaintext fallback: still present</div></div>
-    <div class="hop"><div class="who">LSP (DoP-as-LSP)</div><div class="what">Receives the grant via <code>confirm</code>. Resolves it exactly once, at depot time — the single online event in this pipeline.</div></div>
-    <div class="hop"><div class="who">DIGIPIN adapter</div><div class="what">Buckets and routes off a truncated 6-of-10-char DIGIPIN prefix. Full DIGIPIN never leaves the vault call.</div></div>
-    <div class="hop"><div class="who">Courier</div><div class="what">Scans an offline-verifiable COSE label — no network, no vault reference, zero address-shaped claims.</div></div>
-  </div>
+<h1>The full pipeline, in this page: registry → vault → grant → label → depot resolve → shred</h1>
+<p>Every step below executes the transformed repo modules — <code>services/vault</code>,
+<code>packages/registry</code> (Beckn subscriber-signing envelopes), <code>packages/labels</code>
+(COSE_Sign1), <code>packages/crypto</code> (ChaCha20-Poly1305 envelope encryption),
+<code>adapters/india-post</code> (DIGIPIN-prefix routing). Pilot shape: the grant rides as an
+optional payload inside an existing Beckn <code>action</code>/<code>on_action</code> pair; the
+plaintext-address path stays available as a fallback, so no participant must upgrade on day one.</p>
+<p class="dim">Steps are sequential; each prints the actual artifact it produced. Reload to start over.</p>
 
-  <h2 class="section">The DIGIPIN adapter, live</h2>
-  <div class="row"><button id="btn-route">Route a parcel by DIGIPIN</button></div>
-  <pre id="route-out">// press the button</pre>
+<section>
+  <h2>1. Registry — genesis facilitator admits the LSP (signed write)</h2>
+  <p class="dim">Beckn wire format: keyId="{subscriberId}|{keyId}|ed25519", digest is BLAKE2b-512 of
+  the canonical body, signing string is the exact (created)/(expires)/digest: shape.
+  Unsigned or non-facilitator writes throw — see <a href="./try-to-break-it.html">break-it</a> #7, #8.</p>
+  <button id="s1">register lsp.indiapost.example</button>
+  <pre id="o1">—</pre>
+</section>
 
-  <h2 class="section">RTO unit economics — conservative case</h2>
+<section>
+  <h2>2. Vault — store the address encrypted, bind a pairwise id</h2>
+  <p class="dim">The record the vault persists (ciphertext, per-record HKDF key, AAD-bound to
+  tenant|record) and the projection Zone 2 / the merchant is allowed to see. INV-1: no
+  counterparty-held record may contain an address-shaped field.</p>
+  <button id="s2" disabled>store + bind</button>
+  <pre id="o2">—</pre>
+</section>
+
+<section>
+  <h2>3. Consent + grant — mint against the pairwise id</h2>
+  <button id="s3" disabled>append consent, mint grant</button>
+  <pre id="o3">—</pre>
+</section>
+
+<section>
+  <h2>4. COSE label — minted in Zone 1, verified with public keys only</h2>
+  <p class="dim">What gets printed on the parcel. <code>verifyLabelOffline()</code> takes only
+  pre-synced public key material — no vault, no network. The claims carry no address-shaped field.</p>
+  <button id="s4" disabled>mint label, verify offline</button>
+  <pre id="o4">—</pre>
+</section>
+
+<section>
+  <h2>5. Depot resolve — the single online event</h2>
+  <p class="dim">Audit record is written <em>before</em> decryption, in the same call. The routing
+  port sees the plaintext transiently and emits a sortation code from a truncated 6-of-10
+  DIGIPIN prefix; the full DIGIPIN and address never leave the call frame.</p>
+  <button id="s5" disabled>vault.resolve(grant, "lsp.indiapost.example")</button>
+  <pre id="o5">—</pre>
+</section>
+
+<section>
+  <h2>6. Replay, then erase</h2>
+  <p class="dim">Replay dies on the nonce burn. Erasure requires a facilitator-signed WriteAuth and
+  destroys the record's shred salt — every ciphertext derived from it, including copies in backups,
+  becomes unreadable.</p>
+  <button id="s6" disabled>replay resolve</button>
+  <button id="s7" disabled>erase (signed), then try to read</button>
+  <pre id="o6">—</pre>
+</section>
+
+<section>
+  <h2>7. RTO unit economics — conservative case</h2>
   <table>
     <tr><th>Input</th><th>Value</th><th>Basis</th></tr>
     <tr><td>RTO rate</td><td>25–30%</td><td>lower end of independently cross-checked 20–35% range</td></tr>
-    <tr><td>Address-error share of RTOs</td><td>~15%</td><td>conservative case — headline claims run 18–24%; this page books the lower figure</td></tr>
+    <tr><td>Address-error share of RTOs</td><td>~15%</td><td>headline claims run 18–24%; the lower figure is booked</td></tr>
     <tr><td>Per-RTO logistics cost</td><td>₹180–240</td><td>logistics-only, conservative against ~₹800 total-loss estimates</td></tr>
-    <tr><td>Marginal cost of a grant resolution</td><td>&lt; ₹1</td><td>one vault call, no new infrastructure per parcel</td></tr>
+    <tr><td>Marginal cost of a grant resolution</td><td>&lt; ₹1</td><td>one vault call, no new per-parcel infrastructure</td></tr>
   </table>
-  <div class="verdict">Addressable saving ≈ ₹7.5 per parcel (25% × 15% × ₹200) against &lt;₹1 marginal cost — the sign of the trade is not close, at the conservative case.</div>
-  <div class="cite">This is the pilot's booked case, not the headline case — see the FIDE convergence memo for the wind-tunnel and both personas' agreed measurement plan. What this page does <em>not</em> claim: that depot-time resolution survives DoP's deep-rural operating reality unmodified — that is a live, unresolved empirical question (D-2 in the same memo), not a settled one. If outage-driven failures eat the savings, the design moves to asynchronous pre-resolution before wider rollout.</div>
+  <p class="dim">Addressable saving ≈ ₹7.5/parcel (25% × 15% × ₹200) against &lt;₹1 marginal cost.
+  Not claimed: that depot-time resolution survives deep-rural connectivity unmodified — that is an
+  open empirical question (D-2), stated in <a href="./candid-books.html">candid-books</a>; if
+  outage-driven failures eat the savings, the design moves to asynchronous pre-resolution.</p>
+</section>
+
+<footer>Provenance: see <a href="./index.html#provenance">index § provenance</a> and
+<a href="./assets/js/manifest.json">./assets/js/manifest.json</a>.</footer>
 </div>
-<script>
-async function sha256hex(msg){
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
-  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,10).toUpperCase();
-}
-function randDigipin(){
-  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let out = "";
-  for (let i=0;i<10;i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
-  return out;
-}
-document.getElementById('btn-route').addEventListener('click', async () => {
-  const digipin = randDigipin();
-  const bucket = "IND-" + digipin.slice(0,6);
-  const code = await sha256hex(digipin + "|standard");
-  document.getElementById('route-out').textContent =
-`// full DIGIPIN never leaves this call frame — only the truncated bucket and routing code do
-digipin (transient)   = ${digipin}
-geoBucket (persisted)  = ${bucket}
-sortationCode          = IND-${code}`;
-});
+
+<script type="module">
+import { Registry, newKeyPair, signRequest } from "./assets/js/packages/registry/src/signing.js";
+import { Vault } from "./assets/js/services/vault/src/vault.js";
+import { Kms } from "./assets/js/packages/crypto/src/envelope.js";
+import { AuditLog, ConsentLedger } from "./assets/js/packages/core/src/core.js";
+import { mint, NonceLedger } from "./assets/js/packages/capability/src/capability.js";
+import { newRootSecret } from "./assets/js/packages/identity/src/pairwise.js";
+import { IndiaPostRouting, geoBucketFor } from "./assets/js/adapters/india-post/src/adapter.js";
+import { verifyLabelOffline } from "./assets/js/packages/labels/src/label.js";
+import { randomBytes } from "./assets/js/node-crypto.js";
+
+const $ = (id) => document.getElementById(id);
+const j = (v) => JSON.stringify(v, null, 2);
+let registry, facKeys, vault, consent, audit, grant, label, capSecret, recordId = "rec-0001";
+const FAC = "facilitator.cfp.example", LSP = "lsp.indiapost.example";
+const facAuth = (body) => ({ envelope: signRequest(FAC, "k1", facKeys.privateKey, body), body });
+const address = { line1: "14 Harbour Lane", line2: "Flat 3", locality: "Calder",
+                  postcode: "482001", digipin: "39J49L8T4C" };
+
+$("s1").onclick = () => {
+  facKeys = newKeyPair();
+  registry = new Registry({ subscriberId: FAC, role: "facilitator", keyId: "k1",
+    publicKey: facKeys.publicKey, tier: 3, status: "active" });
+  const lspKeys = newKeyPair();
+  const p = { subscriberId: LSP, role: "operator", keyId: "k1",
+    publicKey: lspKeys.publicKey, tier: 2, status: "active" };
+  const auth = facAuth(p);
+  registry.register(p, auth);
+  $("o1").textContent =
+`signed envelope (facilitator → registry):
+${j(auth.envelope)}
+
+registry.lookup("${LSP}").status = "${registry.lookup(LSP).status}"`;
+  $("s2").disabled = false;
+};
+
+$("s2").onclick = () => {
+  consent = new ConsentLedger(); audit = new AuditLog();
+  capSecret = randomBytes(32);
+  vault = new Vault({ kms: new Kms(), audit, consent, nonces: new NonceLedger(),
+    capSecret, routing: new IndiaPostRouting(), registry });
+  const root = newRootSecret();
+  const pid = vault.issuePairwiseId(root, LSP);
+  const rec = vault.store({ id: recordId, subjectRef: "subject-privately-known-to-vault",
+    tenantId: "indiapost", payload: address, geoBucket: geoBucketFor(address.digipin), vouchTier: 2 });
+  vault.bind(pid, recordId);
+  window.__pid = pid;
+  $("o2").textContent =
+`plaintext (never leaves this step): ${JSON.stringify(address)}
+
+vault-persisted record (what a vault database breach yields):
+${j(rec.ciphertext)}
+
+merchant/Zone-2 projection (everything a counterparty may hold):
+${j(vault.publicProjection(recordId))}
+pairwiseId for ${LSP}: ${pid}`;
+  $("s3").disabled = false;
+};
+
+$("s3").onclick = () => {
+  const c = consent.append({ subject: window.__pid, grantedTo: LSP, purpose: "delivery",
+    scope: ["fulfil"], at: Date.now(), expiresAt: Date.now() + 14 * 86400000 });
+  grant = mint(capSecret, { pairwiseId: window.__pid, purpose: "delivery", maxUnits: 1,
+    fulfiller: "standard", expiresAt: Date.now() + 14 * 86400000, singleUse: true,
+    consentRef: c.ref, channelKind: "door" });
+  $("o3").textContent =
+`consent entry (hash-chained ledger): ref=${c.ref} hash=${c.hash.slice(0,24)}…
+
+FulfilmentGrant (what travels through the Beckn message):
+${j(grant)}`;
+  $("s4").disabled = false;
+};
+
+$("s4").onclick = () => {
+  label = vault.mintLabel(grant);
+  const claims = verifyLabelOffline(vault.labelPublicMaterial(), label.token);
+  $("o4").textContent =
+`COSE_Sign1 token (the QR payload), kid=${label.kid}:
+${label.token}
+
+verifyLabelOffline(publicKeysOnly, token) → claims:
+${j(claims)}`;
+  $("s5").disabled = false;
+};
+
+$("s5").onclick = async () => {
+  const { sortationCode } = await vault.resolve(grant, LSP);
+  const rec = audit.forRecord(recordId)[0];
+  $("o5").textContent =
+`sortationCode = ${sortationCode}   ← IND- + hash of full DIGIPIN|service; bucket ${geoBucketFor(address.digipin)}
+
+audit record (written before decryption, same call):
+${j(rec)}`;
+  $("s6").disabled = false; $("s7").disabled = false;
+};
+
+$("s6").onclick = async () => {
+  try {
+    await vault.resolve(grant, LSP);
+    $("o6").innerHTML = `<span class="err">BUG: replay succeeded — this must never print</span>`;
+  } catch (e) {
+    $("o6").innerHTML = `replay → <span class="err">${e.constructor.name}</span> (nonce burned on first resolve)`;
+  }
+};
+
+$("s7").onclick = () => {
+  const body = { subjectRef: "subject-privately-known-to-vault" };
+  const erased = vault.erase("subject-privately-known-to-vault", facAuth(body));
+  let read;
+  try { read = j(vault.tryRead(recordId)); }
+  catch (e) { read = `${e.constructor.name}: ${e.message}`; }
+  $("o6").innerHTML =
+`erase(subjectRef, facilitatorAuth) → shredded ${JSON.stringify(erased)}
+tryRead("${recordId}") → <span class="err">${read}</span>`;
+};
 </script>
 </body>
 </html>
