@@ -6,8 +6,9 @@
  * It resolves a grant into a routing code and writes an audit record first.
  *
  * [Gap fix — THREAT_MODEL.md §1, §2 item 2] Pairwise-ID issuance lives here
- * now, not on Platform. Ship2MyID's `Platform.issueS2ID(root, merchantId)`
- * took a `RootSecret` as a plain argument on a Zone-2 class — nothing in the
+ * now, not on Platform. The prior implementation's
+ * `Platform.issueS2ID(root, merchantId)` took a `RootSecret` as a plain
+ * argument on a Zone-2 class — nothing in the
  * type system or module boundary stopped that method from being wired to a
  * live network endpoint reachable from a consumer's wallet, at which point
  * the root secret crosses a zone boundary the spec says it shouldn't.

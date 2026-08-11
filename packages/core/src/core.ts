@@ -6,7 +6,7 @@
  * and tests green with every adapter deleted, the standards-agnostic claim
  * is true; when it doesn't, it isn't.
  *
- * Generalized from Ship2MyID's address-shaped core: `AddressPlaintext` is
+ * Generalized from a prior address-shaped core: `AddressPlaintext` is
  * now `ConfidentialPayload` (a generic port type — the address profile
  * supplies the concrete shape), `SortationPort` is now `RoutingPort`.
  */
@@ -20,8 +20,9 @@ export type ConsentEntry = {
   /**
    * [Gap fix — THREAT_MODEL.md §1, §2 item 7] A *pairwise* reference,
    * derived per-counterparty via packages/identity's derivePairwiseId, never
-   * the stable root identity reference Ship2MyID stored here. Ship2MyID's
-   * `subject` field was a stable root ref visible to Platform across every
+   * the stable root identity reference the prior implementation stored here.
+   * That implementation's `subject` field was a stable root ref visible to
+   * Platform across every
    * consent entry regardless of which merchant it was granted to — Platform
    * itself could correlate a subject across counterparties by comparing
    * `subject` values, exactly the correlation the pairwise-ID scheme exists
@@ -143,8 +144,8 @@ export class AuditLog {
 /* ------------------------------------------------------------------- ports */
 
 /**
- * The generic confidential-payload port. What Ship2MyID called
- * `AddressPlaintext` — this file has no opinion on what the payload
+ * The generic confidential-payload port. What the prior implementation
+ * called `AddressPlaintext` — this file has no opinion on what the payload
  * actually is; `profiles/address` and `profiles/contact` each supply their
  * own concrete shape (an address record; `{ e164 }`). Left as `unknown` in
  * the core so no attribute-shaped field can leak in here — the whole point

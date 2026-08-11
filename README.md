@@ -7,8 +7,7 @@ attribute profile. Contact/phone is the second. The grant core underneath
 both is generic.
 
 > *"Yes to the primitive. No to the layer. Not yet to the extension."*
-> — the FIDE convergence memo this repo executes (`docs/` in the lineage
-> repo, `Convergence_Memo_FIDE.md`)
+> — the FIDE convergence memo this repo executes
 
 **Runs entirely offline. No install, no database, no cloud account, no network.**
 Node ≥ 22.6 only — TypeScript executes via native type stripping.
@@ -20,20 +19,19 @@ npm run demo     # narrated end-to-end grant lifecycle
 
 ## Lineage
 
-This repo is derived by copy from [`Ship2MyID`](https://github.com/anonceleb/Ship2MyID),
-which proved the mechanism address-shaped: merchants hold scoped, expiring,
-single-use, revocable, non-widening grants over a street address; only a
-vault resolves them; 28 executable privacy invariants enforced it in CI.
-Ship2MyID stays untouched as the reference implementation and prior art —
-this repo does not move or edit it, only forks from it. The fork exists
-because a three-round strategy review (see the lineage repo's
-`docs/Convergence_Memo_FIDE.md`) concluded the address-specific framing was
-"a layer named after one car" — the generic capability-grant primitive
-underneath is the actual contribution worth offering an open network
-steward, with address as its first instance and contact/phone as its
-second.
+This repo is derived by copy from a prior address-shaped reference
+implementation, which proved the mechanism: counterparties hold scoped,
+expiring, single-use, revocable, non-widening grants over a street address;
+only a vault resolves them; 28 executable privacy invariants enforced it in
+CI. That prior repo stays untouched as reference implementation and prior
+art — this repo does not move or edit it, only forks from it. The fork
+exists because a three-round strategy review concluded the address-specific
+framing was "a layer named after one car" — the generic capability-grant
+primitive underneath is the actual contribution worth offering an open
+network steward, with address as its first instance and contact/phone as
+its second.
 
-## What changed from Ship2MyID
+## What changed from the prior implementation
 
 - **Renamed the core off address vocabulary.** `S2ID` → `PairwiseId`,
   `AddressPlaintext` → `ConfidentialPayload`, `SortationPort` → `RoutingPort`,

@@ -1,6 +1,7 @@
 /**
  * Metering, async request/callback settlement, and real webhook delivery —
- * ported from Ship2MyID's commerce/policy-async/status-and-webhooks suites.
+ * ported from the prior implementation's commerce/policy-async/status-and-webhooks
+ * suites.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

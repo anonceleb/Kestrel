@@ -1,8 +1,8 @@
 /**
- * [Phase 3] Metered API — SHIP2MYID_DEMO_SPEC.md §12: "metered API" is one of
- * the four things that make the platform tier a commerce feature, not just a
- * privacy feature. A merchant integration that can call createShipment an
- * unbounded number of times is a cost and abuse surface, not a product.
+ * [Phase 3] Metered API — "metered API" is one of the four things that make
+ * the platform tier a commerce feature, not just a privacy feature. A
+ * merchant integration that can call createGrant an unbounded number of
+ * times is a cost and abuse surface, not a product.
  *
  * Fixed-window quota per participant. A real deployment backs this with
  * Redis (the same parity note NonceLedger's docstring makes elsewhere) —

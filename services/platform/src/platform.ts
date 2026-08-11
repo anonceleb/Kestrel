@@ -7,8 +7,9 @@
  * exit.
  *
  * [Gap fix — THREAT_MODEL.md §1, §2 item 2] `issueS2ID`/`issuePairwiseId` no
- * longer exists on this class at all. Ship2MyID's `Platform.issueS2ID`
- * accepted a `RootSecret` as a plain argument on a Zone-2 class with no
+ * longer exists on this class at all. The prior implementation's
+ * `Platform.issueS2ID` accepted a `RootSecret` as a plain argument on a
+ * Zone-2 class with no
  * enforced boundary stopping it from being reachable over a network from a
  * consumer wallet. Pairwise-ID issuance now lives exclusively on
  * `services/vault`'s `Vault.issuePairwiseId` — there is no method anywhere

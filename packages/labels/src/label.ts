@@ -16,8 +16,9 @@
  * Never present: the underlying attribute, a name, a phone number. Where a
  * contact channel is relevant, only its hash travels — the Aadhaar
  * offline-eKYC pattern of "a hash of the registered mobile number", never
- * the number itself. Generalized from Ship2MyID's `LabelClaims` (address
- * vocabulary: s2id/maxWeightKg/carrier/destinationKind) to `ArtifactClaims`
+ * the number itself. Generalized from the prior implementation's
+ * `LabelClaims` (address vocabulary: s2id/maxWeightKg/carrier/destinationKind)
+ * to `ArtifactClaims`
  * (pairwiseId/maxUnits/fulfiller/channelKind) — this file has no opinion on
  * whether the fulfilled action is a parcel or a phone call.
  */

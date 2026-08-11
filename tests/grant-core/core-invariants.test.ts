@@ -1,8 +1,8 @@
 /**
  * The grant-core mechanism invariants — attribute-agnostic. Ported from
- * Ship2MyID's tests/invariants/invariants.test.ts with address-shaped
- * fixtures replaced by a neutral payload; the invariant numbers are kept
- * for continuity with the donated suite's history.
+ * the prior implementation's tests/invariants/invariants.test.ts with
+ * address-shaped fixtures replaced by a neutral payload; the invariant
+ * numbers are kept for continuity with the donated suite's history.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
