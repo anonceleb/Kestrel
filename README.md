@@ -9,6 +9,8 @@ both is generic.
 > *"Yes to the primitive. No to the layer. Not yet to the extension."*
 > — the FIDE convergence memo this repo executes
 
+**Live demo:** [kestrel-ebon.vercel.app](https://kestrel-ebon.vercel.app/index.html)
+
 **Runs entirely offline. No install, no database, no cloud account, no network.**
 Node ≥ 22.6 only — TypeScript executes via native type stripping.
 
@@ -94,13 +96,15 @@ web/               the six-page browser demo
 
 ## Deploy recipe
 
-Everything here is prepared so the only manual steps are:
+Everything here was prepared so the only manual steps were:
 
 ```bash
 git init                 # already done in this repo
 gh repo create cfp-demo --public --source=. --push
 vercel                   # bind a new Vercel project to the new GitHub repo
 ```
+
+Live at [kestrel-ebon.vercel.app](https://kestrel-ebon.vercel.app/index.html).
 
 No serverless functions are required — `web/` is static HTML with inline
 CSS/JS, and every page has a working client-side fallback so the "runs
