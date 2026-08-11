@@ -49,20 +49,20 @@ export function isVerifiedHuman(tier: 1 | 2 | 3): boolean {
  */
 export class FulfilmentClient {
   #platform: Platform;
-  #participantId: string;
+  #subscriberId: string;
   #keyId: string;
   #privateKey: string;
 
-  constructor(opts: { platform: Platform; participantId: string; keyId: string; privateKey: string }) {
+  constructor(opts: { platform: Platform; subscriberId: string; keyId: string; privateKey: string }) {
     this.#platform = opts.platform;
-    this.#participantId = opts.participantId;
+    this.#subscriberId = opts.subscriberId;
     this.#keyId = opts.keyId;
     this.#privateKey = opts.privateKey;
   }
 
   /** Drop-in replacement for a plaintext-attribute form: sign, submit, get back a routable, attribute-free result. */
   requestGrantSync(req: FulfilmentRequest, subjectRef: string): GrantResult {
-    const env = signRequest(this.#participantId, this.#keyId, this.#privateKey, req);
+    const env = signRequest(this.#subscriberId, this.#keyId, this.#privateKey, req);
     const { capability, merchantView } = this.#platform.createGrant(env, req, subjectRef);
     return {
       pairwiseId: merchantView.pairwiseId,
@@ -76,7 +76,7 @@ export class FulfilmentClient {
 
   /** The same grant, as the request half of the action/on_action pair — for integrations that can't block on a synchronous mint. */
   requestGrant(req: FulfilmentRequest, subjectRef: string): { transactionId: string } {
-    const env = signRequest(this.#participantId, this.#keyId, this.#privateKey, req);
+    const env = signRequest(this.#subscriberId, this.#keyId, this.#privateKey, req);
     return this.#platform.requestGrant(env, req, subjectRef);
   }
 
@@ -101,11 +101,11 @@ export class FulfilmentClient {
 
   /** A pull, not a push: this integration asking about a grant it already holds. */
   getStatus(capabilityId: string): { status: CapabilityStatus } {
-    return { status: this.#platform.getCapabilityStatus(capabilityId, this.#participantId) };
+    return { status: this.#platform.getCapabilityStatus(capabilityId, this.#subscriberId) };
   }
 
   /** Registers this integration's webhook endpoint. */
   registerWebhook(config: WebhookConfig): void {
-    this.#platform.registerWebhook(this.#participantId, config);
+    this.#platform.registerWebhook(this.#subscriberId, config);
   }
 }

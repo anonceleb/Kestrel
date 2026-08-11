@@ -27,7 +27,7 @@ const capSecret = randomBytes(32);
 step(0, "A facilitator seeds the registry. Every register()/suspend() write from here on must carry its signature.");
 const facilitatorKeys = newKeyPair();
 const registry = new Registry({
-  participantId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
+  subscriberId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
   publicKey: facilitatorKeys.publicKey, tier: 3, status: "active",
 });
 function facilitatorAuth(body: unknown) {
@@ -48,7 +48,7 @@ step(1, "Two counterparties join the network. Each publishes an Ed25519 key, adm
 const privateKeys: Record<string, string> = {};
 for (const id of ["alba-goods.example", "corvid-tools.example"]) {
   const kp = newKeyPair();
-  const p = { participantId: id, role: "merchant" as const, keyId: "k1", publicKey: kp.publicKey, tier: 2 as const, status: "active" as const };
+  const p = { subscriberId: id, role: "merchant" as const, keyId: "k1", publicKey: kp.publicKey, tier: 2 as const, status: "active" as const };
   registry.register(p, facilitatorAuth(p));
   privateKeys[id] = kp.privateKey;
   line(`    registered ${id}`);

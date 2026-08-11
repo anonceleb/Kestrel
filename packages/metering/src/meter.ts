@@ -21,25 +21,25 @@ export class UsageMeter {
   }
 
   /**
-   * Records one call against `participantId`'s current window, starting a
+   * Records one call against `subscriberId`'s current window, starting a
    * fresh window if the previous one has elapsed. Throws QuotaExceeded
    * rather than silently letting the call through once the limit is hit.
    */
-  consume(participantId: string, now = Date.now()): void {
-    const w = this.#windows.get(participantId);
+  consume(subscriberId: string, now = Date.now()): void {
+    const w = this.#windows.get(subscriberId);
     if (!w || now - w.windowStart >= this.#windowMs) {
-      this.#windows.set(participantId, { windowStart: now, count: 1 });
+      this.#windows.set(subscriberId, { windowStart: now, count: 1 });
       return;
     }
     if (w.count >= this.#limit) {
-      throw new QuotaExceeded(`participant ${participantId} exceeded ${this.#limit} calls per ${this.#windowMs}ms window`);
+      throw new QuotaExceeded(`participant ${subscriberId} exceeded ${this.#limit} calls per ${this.#windowMs}ms window`);
     }
     w.count += 1;
   }
 
   /** Calls left in the participant's current window — 0 means the next consume() throws. */
-  remaining(participantId: string, now = Date.now()): number {
-    const w = this.#windows.get(participantId);
+  remaining(subscriberId: string, now = Date.now()): number {
+    const w = this.#windows.get(subscriberId);
     if (!w || now - w.windowStart >= this.#windowMs) return this.#limit;
     return Math.max(0, this.#limit - w.count);
   }

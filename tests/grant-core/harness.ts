@@ -26,7 +26,7 @@ export class NeutralRouting implements RoutingPort {
 export function genesisRegistry() {
   const facKeys = newKeyPair();
   const registry = new Registry({
-    participantId: "facilitator.network.example",
+    subscriberId: "facilitator.network.example",
     role: "facilitator",
     keyId: "fk1",
     publicKey: facKeys.publicKey,
@@ -59,7 +59,7 @@ export function harness() {
   const mk = newKeyPair();
   registry.register(
     {
-      participantId: "counterparty.example",
+      subscriberId: "counterparty.example",
       role: "merchant",
       keyId: "k1",
       publicKey: mk.publicKey,
@@ -67,7 +67,7 @@ export function harness() {
       status: "active",
     },
     authFor({
-      participantId: "counterparty.example",
+      subscriberId: "counterparty.example",
       role: "merchant",
       keyId: "k1",
       publicKey: mk.publicKey,

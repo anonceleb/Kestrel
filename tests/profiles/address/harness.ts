@@ -24,7 +24,7 @@ export function addressHarness() {
 
   const facKeys = newKeyPair();
   const registry = new Registry({
-    participantId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
+    subscriberId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
     publicKey: facKeys.publicKey, tier: 3, status: "active",
   });
   function authFor(body: unknown): WriteAuth {
@@ -36,7 +36,7 @@ export function addressHarness() {
 
   const mk = newKeyPair();
   const participant = {
-    participantId: "seller.meridia.example", role: "merchant" as const, keyId: "k1",
+    subscriberId: "seller.meridia.example", role: "merchant" as const, keyId: "k1",
     publicKey: mk.publicKey, tier: 2 as const, status: "active" as const,
   };
   registry.register(participant, authFor(participant));

@@ -48,7 +48,7 @@ test("end-to-end: mint -> attenuate -> redeem a contact grant through Vault/Plat
 
   const facKeys = newKeyPair();
   const registry = new Registry({
-    participantId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
+    subscriberId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
     publicKey: facKeys.publicKey, tier: 3, status: "active",
   });
   const vault = new Vault({ kms, audit, consent, nonces, capSecret, routing: new CallRelay(), registry });
@@ -58,7 +58,7 @@ test("end-to-end: mint -> attenuate -> redeem a contact grant through Vault/Plat
   const platform = new Platform({ registry, consent, capSecret, policy });
 
   const driverKeys = newKeyPair();
-  const driver = { participantId: "driver-app.example", role: "merchant" as const, keyId: "k1", publicKey: driverKeys.publicKey, tier: 2 as const, status: "active" as const };
+  const driver = { subscriberId: "driver-app.example", role: "merchant" as const, keyId: "k1", publicKey: driverKeys.publicKey, tier: 2 as const, status: "active" as const };
   registry.register(driver, { envelope: signRequest("facilitator.network.example", "fk1", facKeys.privateKey, driver), body: driver });
 
   const riderContact: ContactPayload = { e164: "+15551234567" };

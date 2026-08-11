@@ -20,12 +20,12 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 test("INV-29: Registry.register()/suspend() require a facilitator-signed credential", () => {
   const genesis = newKeyPair();
   const registry = new Registry({
-    participantId: "facilitator.a.example", role: "facilitator", keyId: "k1",
+    subscriberId: "facilitator.a.example", role: "facilitator", keyId: "k1",
     publicKey: genesis.publicKey, tier: 3, status: "active",
   });
 
   const newParticipant = {
-    participantId: "merchant.rogue.example", role: "merchant" as const, keyId: "k1",
+    subscriberId: "merchant.rogue.example", role: "merchant" as const, keyId: "k1",
     publicKey: newKeyPair().publicKey, tier: 3 as const, status: "active" as const,
   };
 
@@ -36,7 +36,7 @@ test("INV-29: Registry.register()/suspend() require a facilitator-signed credent
   // A credential signed by a non-facilitator (even if registered) is rejected.
   const impostorKeys = newKeyPair();
   registry.register(
-    { participantId: "merchant.impostor.example", role: "merchant", keyId: "k1", publicKey: impostorKeys.publicKey, tier: 3, status: "active" },
+    { subscriberId: "merchant.impostor.example", role: "merchant", keyId: "k1", publicKey: impostorKeys.publicKey, tier: 3, status: "active" },
     { envelope: signRequest("facilitator.a.example", "k1", genesis.privateKey, newParticipant), body: newParticipant },
   );
   const impostorEnv = signRequest("merchant.impostor.example", "k1", impostorKeys.privateKey, newParticipant);
@@ -51,7 +51,7 @@ test("INV-29: Registry.register()/suspend() require a facilitator-signed credent
   assert.equal(registry.lookup("merchant.rogue.example").status, "active");
 
   // suspend() is gated the same way.
-  const suspendBody = { participantId: "merchant.rogue.example" };
+  const suspendBody = { subscriberId: "merchant.rogue.example" };
   assert.throws(
     () => registry.suspend("merchant.rogue.example", { envelope: signRequest("merchant.impostor.example", "k1", impostorKeys.privateKey, suspendBody), body: suspendBody }),
     WriteNotAuthorized,
@@ -126,8 +126,8 @@ test("INV-33: the consent ledger is keyed by pairwise reference — Platform can
   // Register a second counterparty under the same harness's registry/vault.
   const mk2 = newKeyPair();
   h.registry.register(
-    { participantId: "counterparty-two.example", role: "merchant", keyId: "k1", publicKey: mk2.publicKey, tier: 2, status: "active" },
-    h.authFor({ participantId: "counterparty-two.example", role: "merchant", keyId: "k1", publicKey: mk2.publicKey, tier: 2, status: "active" }),
+    { subscriberId: "counterparty-two.example", role: "merchant", keyId: "k1", publicKey: mk2.publicKey, tier: 2, status: "active" },
+    h.authFor({ subscriberId: "counterparty-two.example", role: "merchant", keyId: "k1", publicKey: mk2.publicKey, tier: 2, status: "active" }),
   );
 
   const root = newRootSecret();

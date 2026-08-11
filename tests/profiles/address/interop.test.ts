@@ -91,12 +91,12 @@ test("interop: dakhil-post and india-post both refuse a bare self-asserted ident
 test("interop: india-post proofs only against a signed registry attestation, capped at the attester's own tier", async () => {
   const facKeys = newKeyPair();
   const registry = new Registry({
-    participantId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
+    subscriberId: "facilitator.network.example", role: "facilitator", keyId: "fk1",
     publicKey: facKeys.publicKey, tier: 3, status: "active",
   });
   const identity = new IndiaPostIdentity(registry);
   const issuer = newKeyPair();
-  const issuerParticipant = { participantId: "issuer.gramin-dak-sevak.example", role: "operator" as const, keyId: "k1", publicKey: issuer.publicKey, tier: 2 as const, status: "active" as const };
+  const issuerParticipant = { subscriberId: "issuer.gramin-dak-sevak.example", role: "operator" as const, keyId: "k1", publicKey: issuer.publicKey, tier: 2 as const, status: "active" as const };
   registry.register(issuerParticipant, {
     envelope: signRequest("facilitator.network.example", "fk1", facKeys.privateKey, issuerParticipant),
     body: issuerParticipant,

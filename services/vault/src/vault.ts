@@ -207,7 +207,7 @@ export class Vault {
     if (!auth) throw new WriteNotAuthorized("vault write requires a facilitator-signed credential");
     const signer = this.#registry.verify(auth.envelope, auth.body);
     if (signer.role !== "facilitator") {
-      throw new WriteNotAuthorized(`signer ${signer.participantId} is not a facilitator`);
+      throw new WriteNotAuthorized(`signer ${signer.subscriberId} is not a facilitator`);
     }
   }
 

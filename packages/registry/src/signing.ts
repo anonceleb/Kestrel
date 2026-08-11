@@ -1,27 +1,63 @@
 /**
- * Network participant registry + request signing.
+ * Beckn network-registry client: subscriber identity + request signing.
  *
- * Lifted from ONDC/Beckn: every request between participants is signed with the
- * sender's Ed25519 key and verified against a public key published in a shared
- * registry. Two properties this buys that mTLS alone does not:
+ * `Registry` here **simulates the wire protocol of a real Beckn network
+ * registry's subscribe/lookup surface, in-process.** A real deployment
+ * swaps the in-memory `#participants` Map for HTTP calls to the network's
+ * actual registry (e.g. the ONDC/Beckn gateway registry, or a DeDi-hosted
+ * one) — the envelope generation/verification code below does not change
+ * at all when that swap happens; only where `lookup()`/`register()`/
+ * `suspend()` persist state changes.
+ *
+ * Every request between subscribers is signed with the sender's Ed25519 key
+ * and verified against a public key published in the registry. Two
+ * properties this buys that mTLS alone does not:
  *
  *   1. Non-repudiation. A signed request is evidence, not just an authenticated
  *      channel — it survives past the connection that carried it.
- *   2. Participant identity is a network fact, not a deployment fact. Onboarding
- *      a participant is a registry entry, not a firewall change.
+ *   2. Subscriber identity is a network fact, not a deployment fact. Onboarding
+ *      a subscriber is a registry entry, not a firewall change.
  *
- * Signature envelope follows the Beckn shape:
- *   keyId="<participant_id>|<key_id>|ed25519", created, expires, digest
+ * Signature envelope follows Beckn's real wire format (verified against
+ * developers.becknprotocol.io/docs/infrastructure-layer-specification/authentication/subscriber-signing/):
+ *
+ *   Signature keyId="{subscriberId}|{uniqueKeyId}|ed25519",algorithm="ed25519",
+ *     created={created},expires={expires},headers="(created) (expires) digest",
+ *     signature={signature}
+ *
+ * signed over the exact string:
+ *
+ *   (created): {createdValue}
+ *   (expires): {expiresValue}
+ *   digest: BLAKE-512={base64Digest}
+ *
+ * where the digest is a BLAKE2b-512 hash of the canonical request body,
+ * base64-encoded (`digestOf` below).
+ *
+ * Beckn's scheme name is "XEd25519" (XEdDSA over Curve25519), which is
+ * usually described as a signature scheme derived from an X25519
+ * (Diffie-Hellman) key. But for a key pair generated directly as Ed25519
+ * — never derived from/converted to an X25519 key — XEdDSA and standard
+ * EdDSA produce identical signatures: XEdDSA's extra step exists only to
+ * make an X25519 key usable for signing, and is a no-op when the key was
+ * already an Ed25519 signing key to begin with. That's the genesis-key
+ * case this demo (and most real Beckn/ONDC deployments, which mint
+ * Ed25519 keys directly for subscribers) uses, so Node's native
+ * `sign`/`verify` with `ed25519` KeyObjects is a faithful implementation
+ * here — this file does NOT claim to implement the general
+ * X25519-key-conversion case of XEdDSA.
  *
  * [Gap fix — THREAT_MODEL.md §2 item 5] `register()`/`suspend()` used to be
  * unauthenticated method calls: anyone holding a `Registry` reference could
- * admit or suspend any participant. Both now require a signed credential
- * from an already-registered, active `role: "facilitator"` participant — the
- * same Ed25519 envelope shape every other inter-participant request uses.
+ * admit or suspend any subscriber. Both now require a signed credential
+ * from an already-registered, active `role: "facilitator"` subscriber — the
+ * same Ed25519 envelope shape every other inter-subscriber request uses.
  * The registry itself must be seeded with a first facilitator at
  * construction time (`new Registry(genesisFacilitator)`), the same way a
  * root CA is a trust anchor accepted out-of-band rather than proven by a
- * signature from something that doesn't exist yet.
+ * signature from something that doesn't exist yet. This refactor changes
+ * identity shape (subscriberId -> subscriberId) and the digest algorithm
+ * (SHA-256 -> BLAKE2b-512) — it does not touch that authorization model.
  */
 import {
   createHash,
@@ -36,7 +72,8 @@ import {
 export type ParticipantRole = "merchant" | "operator" | "brand" | "platform" | "facilitator";
 
 export type Participant = {
-  participantId: string;
+  /** FQDN-shaped, per Beckn's subscriber_id convention (e.g. "merchant.example.org"). */
+  subscriberId: string;
   role: ParticipantRole;
   keyId: string;
   publicKey: string; // base64 raw SPKI
@@ -46,7 +83,7 @@ export type Participant = {
 };
 
 export type SignedEnvelope = {
-  participantId: string;
+  subscriberId: string;
   keyId: string;
   created: number;
   expires: number;
@@ -75,8 +112,9 @@ function priv(b64: string): KeyObject {
   return createPrivateKey({ key: Buffer.from(b64, "base64"), type: "pkcs8", format: "der" });
 }
 
+/** BLAKE2b-512 digest of the canonical request body, base64-encoded — Beckn's "BLAKE-512" convention. */
 export function digestOf(body: unknown): string {
-  return createHash("sha256").update(canonical(body)).digest("base64");
+  return createHash("blake2b512").update(canonical(body)).digest("base64");
 }
 
 /** Deterministic JSON. Signature stability depends on key order being fixed. */
@@ -88,12 +126,17 @@ export function canonical(value: unknown): string {
   return `{${keys.map((k) => `${JSON.stringify(k)}:${canonical(obj[k])}`).join(",")}}`;
 }
 
+/**
+ * Beckn's exact signing-string shape — verified against
+ * developers.becknprotocol.io/docs/infrastructure-layer-specification/authentication/subscriber-signing/.
+ * Not an approximation: three fixed lines, `\n`-joined, no trailing newline.
+ */
 function signingString(e: Omit<SignedEnvelope, "signature">): string {
-  return `(created): ${e.created}\n(expires): ${e.expires}\ndigest: ${e.digest}`;
+  return `(created): ${e.created}\n(expires): ${e.expires}\ndigest: BLAKE-512=${e.digest}`;
 }
 
 export function signRequest(
-  participantId: string,
+  subscriberId: string,
   keyId: string,
   privateKeyB64: string,
   body: unknown,
@@ -101,7 +144,7 @@ export function signRequest(
 ): SignedEnvelope {
   const created = Math.floor(Date.now() / 1000);
   const base = {
-    participantId,
+    subscriberId,
     keyId,
     created,
     expires: created + ttlSeconds,
@@ -125,7 +168,7 @@ export class Registry {
    * signed by a facilitator this chain of trust already admits.
    */
   constructor(genesisFacilitator?: Participant) {
-    if (genesisFacilitator) this.#participants.set(genesisFacilitator.participantId, genesisFacilitator);
+    if (genesisFacilitator) this.#participants.set(genesisFacilitator.subscriberId, genesisFacilitator);
   }
 
   #verifySignature(p: Participant, env: SignedEnvelope, body: unknown, now: number): void {
@@ -144,11 +187,11 @@ export class Registry {
   /** Requires a signed credential from an active facilitator. Throws WriteNotAuthorized otherwise. */
   #requireFacilitator(auth: WriteAuth, now = Math.floor(Date.now() / 1000)): Participant {
     if (!auth) throw new WriteNotAuthorized("registry write requires a facilitator-signed credential");
-    const signer = this.#participants.get(auth.envelope.participantId);
-    if (!signer) throw new WriteNotAuthorized(`unknown signer ${auth.envelope.participantId}`);
-    if (signer.status !== "active") throw new WriteNotAuthorized(`signer ${signer.participantId} is suspended`);
+    const signer = this.#participants.get(auth.envelope.subscriberId);
+    if (!signer) throw new WriteNotAuthorized(`unknown signer ${auth.envelope.subscriberId}`);
+    if (signer.status !== "active") throw new WriteNotAuthorized(`signer ${signer.subscriberId} is suspended`);
     if (signer.role !== "facilitator") {
-      throw new WriteNotAuthorized(`signer ${signer.participantId} is not a facilitator`);
+      throw new WriteNotAuthorized(`signer ${signer.subscriberId} is not a facilitator`);
     }
     this.#verifySignature(signer, auth.envelope, auth.body, now);
     return signer;
@@ -157,20 +200,20 @@ export class Registry {
   /** [Gap fix] Now requires a facilitator-signed WriteAuth over `p`. */
   register(p: Participant, auth: WriteAuth): void {
     this.#requireFacilitator(auth);
-    this.#participants.set(p.participantId, p);
+    this.#participants.set(p.subscriberId, p);
   }
 
-  lookup(participantId: string): Participant {
-    const p = this.#participants.get(participantId);
-    if (!p) throw new ParticipantUnknown(participantId);
+  lookup(subscriberId: string): Participant {
+    const p = this.#participants.get(subscriberId);
+    if (!p) throw new ParticipantUnknown(subscriberId);
     return p;
   }
 
-  /** [Gap fix] Now requires a facilitator-signed WriteAuth over `{ participantId }`. */
-  suspend(participantId: string, auth: WriteAuth): void {
+  /** [Gap fix] Now requires a facilitator-signed WriteAuth over `{ subscriberId }`. */
+  suspend(subscriberId: string, auth: WriteAuth): void {
     this.#requireFacilitator(auth);
-    const p = this.lookup(participantId);
-    this.#participants.set(participantId, { ...p, status: "suspended" });
+    const p = this.lookup(subscriberId);
+    this.#participants.set(subscriberId, { ...p, status: "suspended" });
   }
 
   all(): Participant[] {
@@ -179,8 +222,8 @@ export class Registry {
 
   /** Verifies signature, freshness, body integrity, and participant standing. */
   verify(env: SignedEnvelope, body: unknown, now = Math.floor(Date.now() / 1000)): Participant {
-    const p = this.lookup(env.participantId);
-    if (p.status !== "active") throw new ParticipantSuspended(env.participantId);
+    const p = this.lookup(env.subscriberId);
+    if (p.status !== "active") throw new ParticipantSuspended(env.subscriberId);
     this.#verifySignature(p, env, body, now);
     return p;
   }

@@ -93,7 +93,7 @@ test("INV-9: every inter-participant request is signed and verified (ONDC)", asy
   const env = signRequest("counterparty.example", "k1", h.mk.privateKey, req);
 
   assert.throws(() => h.registry.verify(env, { ...req, units: 900 }), SignatureInvalid);
-  h.registry.suspend("counterparty.example", h.authFor({ participantId: "counterparty.example" }));
+  h.registry.suspend("counterparty.example", h.authFor({ subscriberId: "counterparty.example" }));
   assert.throws(() => h.registry.verify(env, req));
 });
 

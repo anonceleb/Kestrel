@@ -96,7 +96,7 @@ export class Platform {
   #pendingGrants = new Map<string, { env: SignedEnvelope; req: FulfilmentRequest; subjectRef: string }>();
   /** Metered API. See packages/metering/src/meter.ts. */
   #meter: UsageMeter;
-  /** participantId -> registered webhook endpoint. See packages/webhooks/src/webhook.ts. */
+  /** subscriberId -> registered webhook endpoint. See packages/webhooks/src/webhook.ts. */
   #webhooks = new Map<string, WebhookConfig>();
   #webhookDispatcher: WebhookDispatcher;
 
@@ -124,28 +124,28 @@ export class Platform {
   }
 
   /** See the CapabilityStatus docstring above for why this is exactly three states. Ownership-checked against consent.grantedTo. */
-  getCapabilityStatus(capabilityId: string, participantId: string): CapabilityStatus {
+  getCapabilityStatus(capabilityId: string, subscriberId: string): CapabilityStatus {
     const consentRef = this.#capabilityConsent.get(capabilityId);
     if (!consentRef) throw new UnknownCapability(capabilityId);
     const entry = this.#consent.find(consentRef);
-    if (!entry || entry.grantedTo !== participantId) {
-      throw new NotAuthorized(`capability ${capabilityId} does not belong to participant ${participantId}`);
+    if (!entry || entry.grantedTo !== subscriberId) {
+      throw new NotAuthorized(`capability ${capabilityId} does not belong to participant ${subscriberId}`);
     }
     if (this.#consent.isRevoked(consentRef)) return "revoked";
     if (Date.now() > entry.expiresAt) return "expired";
     return "issued";
   }
 
-  registerWebhook(participantId: string, config: WebhookConfig): void {
-    this.#webhooks.set(participantId, config);
+  registerWebhook(subscriberId: string, config: WebhookConfig): void {
+    this.#webhooks.set(subscriberId, config);
   }
 
   webhookHistory(): readonly DeliveryAttempt[] {
     return this.#webhookDispatcher.history();
   }
 
-  #fireWebhook(participantId: string, event: WebhookEvent): void {
-    const config = this.#webhooks.get(participantId);
+  #fireWebhook(subscriberId: string, event: WebhookEvent): void {
+    const config = this.#webhooks.get(subscriberId);
     if (!config) return;
     void this.#webhookDispatcher.deliver(config, event).catch(() => {});
   }
@@ -174,7 +174,7 @@ export class Platform {
     subjectRef: string,
   ): { capability: Capability; merchantView: MerchantView } {
     const merchant = this.#registry.verify(env, req);
-    this.#meter.consume(merchant.participantId);
+    this.#meter.consume(merchant.subscriberId);
     const proj = this.#projections.get(req.pairwiseId);
     if (!proj) throw new Error("unknown pairwiseId");
     const activePolicy = this.#policy.active();
@@ -184,7 +184,7 @@ export class Platform {
 
     const consent = this.#consent.append({
       subject: subjectRef,
-      grantedTo: merchant.participantId,
+      grantedTo: merchant.subscriberId,
       purpose: "delivery",
       scope: ["route-fulfilment"],
       at: Date.now(),
@@ -225,7 +225,7 @@ export class Platform {
    */
   requestGrant(env: SignedEnvelope, req: FulfilmentRequest, subjectRef: string): { transactionId: string } {
     const merchant = this.#registry.verify(env, req);
-    this.#meter.consume(merchant.participantId);
+    this.#meter.consume(merchant.subscriberId);
     const transactionId = this.#grants.begin();
     this.#pendingGrants.set(transactionId, { env, req, subjectRef });
     return { transactionId };
@@ -249,11 +249,11 @@ export class Platform {
   processBatch(): void {
     for (const [transactionId, pending] of [...this.#pendingGrants]) {
       this.#pendingGrants.delete(transactionId);
-      const participantId = pending.env.participantId;
+      const subscriberId = pending.env.subscriberId;
       try {
         const result = this.createGrant(pending.env, pending.req, pending.subjectRef);
         this.#grants.callback(transactionId, result);
-        this.#fireWebhook(participantId, {
+        this.#fireWebhook(subscriberId, {
           event: "grant.completed",
           transactionId,
           at: Date.now(),
@@ -261,7 +261,7 @@ export class Platform {
         });
       } catch (err) {
         this.#grants.fail(transactionId, err);
-        this.#fireWebhook(participantId, {
+        this.#fireWebhook(subscriberId, {
           event: "grant.failed",
           transactionId,
           at: Date.now(),
