@@ -1,8 +1,7 @@
 /**
- * The grant-core mechanism invariants — attribute-agnostic. Ported from
- * the prior implementation's tests/invariants/invariants.test.ts with
- * address-shaped fixtures replaced by a neutral payload; the invariant
- * numbers are kept for continuity with the donated suite's history.
+ * The grant-core mechanism invariants — attribute-agnostic, exercised
+ * against a neutral payload rather than an address, so the numbering
+ * matches the donated suite this repo maintains.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

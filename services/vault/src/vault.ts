@@ -5,14 +5,13 @@
  * serve counterparties, does not render UI, does not hold business logic.
  * It resolves a grant into a routing code and writes an audit record first.
  *
- * [Gap fix — THREAT_MODEL.md §1, §2 item 2] Pairwise-ID issuance lives here
- * now, not on Platform. The prior implementation's
- * `Platform.issueS2ID(root, merchantId)` took a `RootSecret` as a plain
- * argument on a Zone-2 class — nothing in the
- * type system or module boundary stopped that method from being wired to a
- * live network endpoint reachable from a consumer's wallet, at which point
- * the root secret crosses a zone boundary the spec says it shouldn't.
- * `issuePairwiseId` exists only on `Vault` now; `Platform` has no method
+ * [Gap fix — THREAT_MODEL.md §1, §2 item 2] Pairwise-ID issuance lives
+ * here, not on Platform. A Zone-2 method that took a `RootSecret` as a
+ * plain argument would leave nothing in the type system or module boundary
+ * to stop it being wired to a live network endpoint reachable from a
+ * consumer's wallet, at which point the root secret crosses a zone
+ * boundary the spec says it shouldn't.
+ * `issuePairwiseId` exists only on `Vault`; `Platform` has no method
  * that accepts a `RootSecret` at all, so there is no code path by which a
  * root secret can reach Zone 2's public API surface — see
  * tests/grant-core/gap-fixes.test.ts (INV-32).

@@ -6,9 +6,9 @@
  * and tests green with every adapter deleted, the standards-agnostic claim
  * is true; when it doesn't, it isn't.
  *
- * Generalized from a prior address-shaped core: `AddressPlaintext` is
- * now `ConfidentialPayload` (a generic port type — the address profile
- * supplies the concrete shape), `SortationPort` is now `RoutingPort`.
+ * The confidential attribute is `ConfidentialPayload` — a generic port
+ * type; the address profile supplies its concrete shape. Routing is
+ * `RoutingPort` — attribute-agnostic by construction.
  */
 import { createHash, randomUUID } from "node:crypto";
 
@@ -20,11 +20,10 @@ export type ConsentEntry = {
   /**
    * [Gap fix — THREAT_MODEL.md §1, §2 item 7] A *pairwise* reference,
    * derived per-counterparty via packages/identity's derivePairwiseId, never
-   * the stable root identity reference the prior implementation stored here.
-   * That implementation's `subject` field was a stable root ref visible to
-   * Platform across every
-   * consent entry regardless of which merchant it was granted to — Platform
-   * itself could correlate a subject across counterparties by comparing
+   * a stable root identity reference. A stable reference visible to Platform
+   * across every consent entry regardless of which merchant it was granted
+   * to would let Platform itself correlate a subject across counterparties
+   * by comparing
    * `subject` values, exactly the correlation the pairwise-ID scheme exists
    * to prevent for merchants. Keying the ledger by the same per-counterparty
    * pairwise reference closes that hole for Platform's own view too: two
@@ -144,9 +143,8 @@ export class AuditLog {
 /* ------------------------------------------------------------------- ports */
 
 /**
- * The generic confidential-payload port. What the prior implementation
- * called `AddressPlaintext` — this file has no opinion on what the payload
- * actually is; `profiles/address` and `profiles/contact` each supply their
+ * The generic confidential-payload port. This file has no opinion on what
+ * the payload actually is; `profiles/address` and `profiles/contact` each supply their
  * own concrete shape (an address record; `{ e164 }`). Left as `unknown` in
  * the core so no attribute-shaped field can leak in here — the whole point
  * of splitting core from profile.

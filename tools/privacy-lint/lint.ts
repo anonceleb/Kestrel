@@ -8,9 +8,8 @@
  *      type or in any logging call.
  *   3. [Gap fix — THREAT_MODEL.md §2 item 6, §3 "operator insider"] The
  *      log-hygiene scan now also walks adapters/ and profiles/, not just
- *      packages/ and services/. The prior implementation's log-hygiene check
- *      skipped adapters/ entirely — the one directory whose code is most
- *      likely to legitimately touch plaintext.
+ *      packages/ and services/ — closing the one directory whose code is
+ *      most likely to legitimately touch plaintext.
  *   4. [New] No address-shaped identifier may appear in an `export type` /
  *      `export interface` declaration under packages/, outside profiles/.
  *      This is the structural check behind the renaming: the generic core

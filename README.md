@@ -19,42 +19,32 @@ npm run verify   # privacy-lint + grant-core + profile invariant suites
 npm run demo     # narrated end-to-end grant lifecycle
 ```
 
-## Lineage
+## Design choices
 
-This repo is derived by copy from a prior address-shaped reference
-implementation, which proved the mechanism: counterparties hold scoped,
-expiring, single-use, revocable, non-widening grants over a street address;
-only a vault resolves them; 28 executable privacy invariants enforced it in
-CI. That prior repo stays untouched as reference implementation and prior
-art — this repo does not move or edit it, only forks from it. The fork
-exists because a three-round strategy review concluded the address-specific
-framing was "a layer named after one car" — the generic capability-grant
-primitive underneath is the actual contribution worth offering an open
-network steward, with address as its first instance and contact/phone as
-its second.
-
-## What changed from the prior implementation
-
-- **Renamed the core off address vocabulary.** `S2ID` → `PairwiseId`,
-  `AddressPlaintext` → `ConfidentialPayload`, `SortationPort` → `RoutingPort`,
-  `ShipmentRequest`/`createShipment` → `FulfilmentRequest`/`createGrant`,
-  `Capability` → aliased publicly as `FulfilmentGrant`. Nothing under
+- **The core carries no address vocabulary.** `PairwiseId`,
+  `ConfidentialPayload`, `RoutingPort`, `FulfilmentRequest`/`createGrant`,
+  `FulfilmentGrant` as the public capability type. Nothing under
   `packages/` may contain an address-shaped identifier outside `profiles/` —
-  enforced by a new `tools/privacy-lint` rule, not just a naming convention.
-- **Closed the five gaps `THREAT_MODEL.md` admitted were open** (registry
-  write authorization, the self-signed default policy, adapter log-hygiene
-  coverage, root-secret/pairwise-ID placement, platform-side cross-merchant
-  correlation) — see `spec/CFP-v0.x.md` and `web/candid-books.html` for what
-  changed and which test proves it.
-- **Added a third postal adapter** (`adapters/india-post`, DIGIPIN-shaped)
-  to prove the interop claim across three operators, not two.
-- **Split the grant core from the address profile** into `profiles/address`
-  and a new `profiles/contact` (phone-number masking, mobility-shaped) that
-  reuses the identical `FulfilmentGrant` mint/attenuate/redeem path with no
-  forked token logic.
-- **Rebuilt the demo surface** (`web/`) for a protocol steward audience
-  rather than a merchant one: the agentic-checkout comparison leads, an
-  attack console lets a skeptical reader try to break the primitive in the
+  enforced by a `tools/privacy-lint` rule, not just a naming convention. A
+  strategy review concluded that an address-specific framing reads as "a
+  layer named after one car" — the generic capability-grant primitive is
+  the actual contribution worth offering an open network steward, with
+  address as its first instance and contact/phone as its second.
+- **Five threat-model gaps are closed with tests**, not just documented:
+  registry write authorization, the self-signed default policy, adapter
+  log-hygiene coverage, root-secret/pairwise-ID placement, and platform-side
+  cross-merchant correlation — see `spec/CFP-v0.x.md` and
+  `web/candid-books.html` for what closed and which test proves it.
+- **Three postal adapters prove the interop claim** (`adapters/{postal-meridia,dakhil-post,india-post}`),
+  the third DIGIPIN-shaped, with a test proving zero core diff and no output
+  collisions across all three.
+- **The grant core is split from the address profile** into
+  `profiles/address` and a `profiles/contact` (phone-number masking,
+  mobility-shaped) that reuses the identical `FulfilmentGrant`
+  mint/attenuate/redeem path with no forked token logic.
+- **The demo surface** (`web/`) targets a protocol-steward audience rather
+  than a merchant one: the agentic-checkout comparison leads, an attack
+  console lets a skeptical reader try to break the primitive in the
   browser, and a candid-books page states what's closed, what's still open,
   and the stewardship commitment verbatim.
 
@@ -124,7 +114,7 @@ Live at [kestrel-ebon.vercel.app](https://kestrel-ebon.vercel.app/index.html).
 
 No serverless functions are required — `web/` is static HTML with inline
 CSS/JS, and every page has a working client-side fallback so the "runs
-entirely offline" property survives the fork.
+entirely offline" property holds throughout.
 
 ## Tone
 

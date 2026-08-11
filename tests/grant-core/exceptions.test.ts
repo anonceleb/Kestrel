@@ -1,8 +1,6 @@
 /**
  * Exception paths — returns, revocation, redirect, refund — all built so
  * none of them can ever grant more than the originating fulfilment did.
- * Ported from the prior implementation's exceptions*.test.ts with neutral
- * fixtures.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

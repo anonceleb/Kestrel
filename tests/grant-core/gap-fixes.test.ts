@@ -1,6 +1,6 @@
 /**
- * One invariant per closed threat-model gap. See THREAT_MODEL.md (lineage
- * repo) §1, §2 items 1/4/5/7 and §4 for the admitted holes these close.
+ * One invariant per closed threat-model gap — §1, §2 items 1/4/5/7 and §4
+ * for the admitted holes these close.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

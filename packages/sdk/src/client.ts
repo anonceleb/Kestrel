@@ -7,8 +7,8 @@
  * underneath it are implementation detail. What matters: no attribute-shaped
  * field, no name, no phone, ever crosses this surface.
  *
- * Renamed from the prior implementation's MerchantClient/CheckoutResult to
- * keep the naming generic: FulfilmentClient/GrantResult.
+ * Named generically — FulfilmentClient/GrantResult, not
+ * MerchantClient/CheckoutResult — because nothing here is address-specific.
  */
 import { signRequest } from "../../registry/src/signing.ts";
 import {

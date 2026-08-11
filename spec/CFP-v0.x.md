@@ -190,8 +190,8 @@ working group its author participates in but does not control.
 > formed yet" is not a condition that extends the twelve months.
 
 This is the D-1 clause from the convergence memo between this project and
-FIDE (see the lineage repository's `docs/Convergence_Memo_FIDE.md`,
-Pushback 3 and Part II §2, D-1), reproduced here verbatim in intent because
+FIDE (`Convergence_Memo_FIDE.md`, Pushback 3 and Part II §2, D-1), reproduced
+here verbatim in intent because
 a spec-text commitment is the only version of this promise that survives a
 change of author. It is restated on `web/candid-books.html` for the same
 reason.
@@ -214,7 +214,7 @@ list is worth more than a long defensive one:
   once-per-parcel online event on operator infrastructure. In a deep-rural
   network the "depot" can be a low-connectivity branch office, not an urban
   sortation hub — a genuine, unresolved empirical question (see the
-  lineage repo's convergence memo, D-2), not a solved one.
+  FIDE convergence memo, D-2), not a solved one.
 - **Threshold-split vault keys.** Single-custodian `Kms`, no m-of-n split.
   Named as an open question, not attempted.
 
@@ -233,5 +233,4 @@ list is worth more than a long defensive one:
   `PolicyStore`. INV-30/30b.
 
 See `web/candid-books.html` for the same five gaps with links to their
-tests, and `THREAT_MODEL.md` in the lineage repository for the original
-admission.
+tests.

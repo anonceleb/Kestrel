@@ -6,12 +6,11 @@
  * than deniable. The honeypot is Zone 1: one service, one job, one audited
  * exit.
  *
- * [Gap fix — THREAT_MODEL.md §1, §2 item 2] `issueS2ID`/`issuePairwiseId` no
- * longer exists on this class at all. The prior implementation's
- * `Platform.issueS2ID` accepted a `RootSecret` as a plain argument on a
- * Zone-2 class with no
- * enforced boundary stopping it from being reachable over a network from a
- * consumer wallet. Pairwise-ID issuance now lives exclusively on
+ * [Gap fix — THREAT_MODEL.md §1, §2 item 2] `issuePairwiseId` does not
+ * exist on this class at all — a Zone-2 method that accepted a `RootSecret`
+ * as a plain argument would have no enforced boundary stopping it from
+ * being reachable over a network from a consumer wallet. Pairwise-ID
+ * issuance instead lives exclusively on
  * `services/vault`'s `Vault.issuePairwiseId` — there is no method anywhere
  * on `Platform`'s public surface that accepts a `RootSecret`, so a root
  * secret cannot reach Zone 2's API by construction, not by discipline.

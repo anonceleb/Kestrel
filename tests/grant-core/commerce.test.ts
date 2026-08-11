@@ -1,7 +1,5 @@
 /**
- * Metering, async request/callback settlement, and real webhook delivery —
- * ported from the prior implementation's commerce/policy-async/status-and-webhooks
- * suites.
+ * Metering, async request/callback settlement, and real webhook delivery.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
