@@ -48,9 +48,10 @@ uniformly across the spec, the reference implementation, and the donated invaria
 
 Kestrel ships documentation at multiple levels for different audiences:
 
+*   [`USE_CASES.md`](./USE_CASES.md) — who this is for and what problem it solves, in plain
+    language, with a concrete end-to-end walkthrough. Start here if you're not a protocol engineer.
 *   [`README.md`](./README.md) — project overview, design choices, module map, and how to run the suite.
 *   [`spec/CFP-v0.x.md`](./spec/CFP-v0.x.md) — the pilot-scoped protocol specification (token format, redemption semantics, disclosure policy).
-*   [`doc/CFP-functional-manual.md`](./doc/CFP-functional-manual.md) and [`doc/CFP-technical-manual.md`](./doc/CFP-technical-manual.md) — functional and technical deep dives.
 *   [`CONTRIBUTING.md`](./CONTRIBUTING.md) — how to propose changes, plus the invariant-suite discipline contributors are expected to follow.
 *   [`web/candid-books.html`](./web/candid-books.html) — a maintained, line-referenced ledger of every closed gap (with the test that proves it) and every open gap, kept to the same standard of evidence as the closed items.
 *   [`tests/README.md`](./tests/README.md) — reconciles invariant and test counts against the base repository this project forked from.

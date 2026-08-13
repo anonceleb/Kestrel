@@ -14,6 +14,9 @@ A generic capability-grant primitive, address as its first attribute
 profile, contact/phone as its second — donated as a protocol contribution,
 not operated as a product.
 
+**New here?** [`USE_CASES.md`](./USE_CASES.md) explains who this is for and what problem it
+solves, in plain language, before the rest of this file gets technical.
+
 **Live demo:** [kestrel-ebon.vercel.app](https://kestrel-ebon.vercel.app/index.html)
 
 **Runs entirely offline. No install, no database, no cloud account, no network.**
