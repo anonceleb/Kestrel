@@ -1,26 +1,30 @@
 # Privacy & Regulatory Compliance (Kestrel)
 
-Kestrel (Confidential Fulfilment Profile) is a privacy-first, capability-based digital credential system designed to enable confidential actions against sensitive attributes (e.g., address, phone numbers) without exposing or transmitting the underlying data.
+Kestrel (Confidential Fulfilment Profile) lets an action happen against a sensitive
+attribute — an address, a phone number — without ever exposing or transmitting the attribute
+itself.
 
-## 1. Privacy by Design Posture
+## 1. Privacy by Design
 
-Kestrel enforces **zero data retention and zero central collection** of Personally Identifiable Information (PII). It operates on the following architectural principles:
+Kestrel doesn't retain or centrally collect personal data. Here's how:
 
-*   **Offline Execution**: The library executes entirely client-side or in-process (runs offline, no cloud database, no network calls required).
-*   **Data Minimization**: Attributes are stored as encrypted ciphertexts inside the Vault (Zone 1). The Platform (Zone 2) only coordinates transactions using non-PII capability tokens.
-*   **Pseudonymization (Pairwise IDs)**: Kestrel generates a unique, deterministic, non-correlatable identifier for each merchant-subject pair using HKDF and HMAC. Two different counterparties cannot link or join their records to identify a shared subject.
-*   **Crypto-Shredding (Right to Erasure)**: Deletion is accomplished by destroying the HKDF record keys. The encrypted data becomes mathematically unrecoverable, fulfilling the right to be forgotten without complex database refactoring or backup-purging issues.
-*   **Authenticated Encryption (AEAD)**: Stored ciphertexts are sealed with ChaCha20-Poly1305 and bound to additional authenticated data (AAD) consisting of `tenant_id` and `record_id` to prevent ciphertext relocation attacks.
+*   **It runs offline.** Everything executes client-side or in-process — no cloud database, no required network calls.
+*   **Attributes stay encrypted.** They're stored only inside the Vault. The Platform, which coordinates the actual transaction, only ever handles opaque tokens — never the real data.
+*   **Each merchant sees a different ID for the same person.** IDs are derived so that two merchants can't compare notes and figure out they're dealing with the same subject.
+*   **Deleting someone's data means destroying their encryption key**, not searching every backup for their record. Once the key's gone, the data is permanently unreadable — that's crypto-shredding, and it's how the right to erasure is implemented.
+*   **Every stored record is encrypted** with ChaCha20-Poly1305 and tied to its own tenant and record ID, so a ciphertext can't be copied and replayed somewhere else.
 
-## 2. Regulatory Compliance Mapping
+## 2. How This Maps to Privacy Law
 
-Kestrel is designed to help integrators comply with strict global data privacy regulations:
+Kestrel's design lines up with a few major privacy regimes:
 
-| Regulation | Compliance Mechanism |
+| Regulation | How Kestrel meets it |
 |---|---|
-| **GDPR (EU)** | Enforces **Data Minimization** (Art 5(1)(c)) by design. Fulfills the **Right to Erasure** (Art 17) via instant crypto-shredding. Complies with **Data Security** (Art 32) using authenticated symmetric encryption (ChaCha20-Poly1305). |
-| **Digital Personal Data Protection (DPDP) Act (India, 2023)** | Enforces purpose limitation and strict consent tracking. The Consent Ledger records the exact policy hash that authorized a grant, making consent audits verifiable and revocable at any time. |
-| **Information Technology Act (India, 2000)** | Follows Section 43A guidelines for **Reasonable Security Practices and Procedures (RSPP)** by implementing secure, standardized key derivation, digital signatures, and access logs. |
+| **GDPR (EU)** | Data minimization (Art 5(1)(c)) is built in. Right to erasure (Art 17) works via crypto-shredding. Data security (Art 32) is met with authenticated encryption (ChaCha20-Poly1305). |
+| **DPDP Act (India, 2023)** | Purpose limitation and consent tracking are enforced — the Consent Ledger records exactly which policy authorized each grant, so consent can be audited or revoked at any time. |
+| **IT Act (India, 2000)** | Meets Section 43A's reasonable-security-practices requirement through standard key derivation, digital signatures, and access logs. |
 
-## 3. Data Collection Policy
-As a decentralized open-source library, Kestrel **does not collect, store, or transmit** any user data to its authors, maintainers, or any third party. The responsibility for data protection and operational compliance rests with the entities deploying Kestrel instances.
+## 3. What We Collect
+
+Kestrel is a library, not a service — we (its authors) never see, collect, or receive any
+user data. Whoever deploys it is responsible for their own data protection and compliance.
