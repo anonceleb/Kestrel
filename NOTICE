@@ -1,9 +1,8 @@
 CFP — Confidential Fulfilment Profile
 Copyright 2026 Ekumen LLP
 
-This repository is authored and maintained by Ekumen LLP (Ashwin Natarajan,
-Karthik). It is licensed under the Apache License, Version 2.0 — see
-LICENSE.
+This repository is authored and maintained by Ekumen LLP. It is licensed
+under the Apache License, Version 2.0 — see LICENSE.
 
 Lineage: this codebase originates from an earlier internal prototype as a
 company-operated confidential-address-vault product. That approach was

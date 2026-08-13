@@ -30,7 +30,7 @@ Kestrel adopts and complies with the following open standards and cryptographic 
 
 ## 4. Ownership (Indicator 3)
 
-Kestrel is authored and maintained by **Ekumen LLP** (Ashwin Natarajan, Karthik) — see
+Kestrel is authored and maintained by **Ekumen LLP** — see
 [`NOTICE`](./NOTICE) for the full ownership and licensing statement, and
 [`README.md`](./README.md) for current maintainer contact. Ekumen LLP holds no exclusive
 rights beyond the Apache-2.0 license itself: the code, spec, and donated invariant suite are
