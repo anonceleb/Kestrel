@@ -154,8 +154,13 @@ export type ConfidentialPayload = unknown;
 export type GeoBucket = string;
 
 export type IdentityProofingPort = {
-  /** Returns the tier achieved, never the underlying credential. */
-  proof(subjectRef: string, evidence: unknown): Promise<1 | 2 | 3>;
+  /**
+   * Returns an opaque assurance label, never the underlying credential.
+   * Deliberately `string`, not a numeric ordinal: what a label means, and
+   * whether labels are even ordered, is for the signed disclosure policy to
+   * interpret — the port and the protocol above it must not.
+   */
+  proof(subjectRef: string, evidence: unknown): Promise<string>;
 };
 
 /**
@@ -165,7 +170,7 @@ export type IdentityProofingPort = {
  * call-connect token in the contact profile.
  */
 export type RoutingPort = {
-  route(payload: ConfidentialPayload, service: string): Promise<{ sortationCode: string }>;
+  route(payload: ConfidentialPayload, service: string): Promise<{ routingCode: string }>;
 };
 
 /**
@@ -187,7 +192,8 @@ export type NotificationPort = {
 export type MerchantView = {
   pairwiseId: string;
   geoBucket: GeoBucket;
-  verifiedTier: 1 | 2 | 3;
+  /** Opaque, policy-interpreted proofing-assurance label — not a protocol-compared ordinal. */
+  verifiedAssurance: string;
   serviceLevel: string;
   estimatedDelivery: string;
 };
@@ -198,18 +204,18 @@ export type MerchantView = {
  * must not be able to enumerate each other through it.
  */
 export type Residency = {
-  addressRecordId: string;
+  cohortRecordId: string;
   subjectRef: string;
   barrier: boolean;
 };
 
-export function visibleCoResidents(all: Residency[], viewer: string, addressRecordId: string) {
+export function visibleCoResidents(all: Residency[], viewer: string, cohortRecordId: string) {
   const viewerRow = all.find(
-    (r) => r.subjectRef === viewer && r.addressRecordId === addressRecordId,
+    (r) => r.subjectRef === viewer && r.cohortRecordId === cohortRecordId,
   );
   if (!viewerRow) return [];
   return all
-    .filter((r) => r.addressRecordId === addressRecordId && r.subjectRef !== viewer)
+    .filter((r) => r.cohortRecordId === cohortRecordId && r.subjectRef !== viewer)
     .filter((r) => !r.barrier && !viewerRow.barrier)
     .map((r) => r.subjectRef);
 }

@@ -56,7 +56,7 @@ export type ConfidentialRecord = {
   tenantId: string;
   ciphertext: Ciphertext;
   geoBucket: string;
-  vouchTier: 1 | 2 | 3;
+  assurance: string;
   status: "active" | "superseded" | "revoked";
 };
 
@@ -113,7 +113,7 @@ export class Vault {
     tenantId: string;
     payload: ConfidentialPayload;
     geoBucket: string;
-    vouchTier: 1 | 2 | 3;
+    assurance: string;
   }): ConfidentialRecord {
     const ciphertext = seal(this.#kms, rec.tenantId, rec.id, JSON.stringify(rec.payload));
     const record: ConfidentialRecord = {
@@ -122,7 +122,7 @@ export class Vault {
       tenantId: rec.tenantId,
       ciphertext,
       geoBucket: rec.geoBucket,
-      vouchTier: rec.vouchTier,
+      assurance: rec.assurance,
       status: "active",
     };
     this.#records.set(rec.id, record);
@@ -137,7 +137,7 @@ export class Vault {
   publicProjection(recordId: string) {
     const r = this.#records.get(recordId);
     if (!r) return undefined;
-    return { id: r.id, geoBucket: r.geoBucket, vouchTier: r.vouchTier, status: r.status };
+    return { id: r.id, geoBucket: r.geoBucket, assurance: r.assurance, status: r.status };
   }
 
   /**
@@ -146,7 +146,7 @@ export class Vault {
    * attributed to an actor, a purpose, and a consent reference is not a
    * policy violation — it is a crash.
    */
-  async resolve(cap: Capability, actor: string): Promise<{ sortationCode: string }> {
+  async resolve(cap: Capability, actor: string): Promise<{ routingCode: string }> {
     verifyCap(this.#capSecret, cap);
     this.#registry.lookup(actor); // actor must be a known registry participant
     this.#nonces.burn(cap.id); // replay dies here — CapabilityBurned

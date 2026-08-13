@@ -35,7 +35,7 @@
   <nav>
     <a href="./index.html">index</a>
     <a href="./try-to-break-it.html">break-it</a>
-    <a href="../spec/CFP-v0.x.md">spec</a>
+    <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec</a>
   </nav>
 </header>
 
@@ -43,6 +43,10 @@
 <p>A threat-model review named five holes explicitly; closing them was a precondition of this demo
 shipping. Each closure below names the test that pins it — run <code>npm run verify</code>. Open
 problems follow, stated with the same prominence.</p>
+<p class="dim">Two items below are tagged with short reference codes, D-1 and D-2, used consistently
+in this project's internal review notes and carried here so a reader can cite the same point across
+this page and <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec/CFP-v0.x.md</a>: D-1 is the stewardship-transfer
+clause (§8), D-2 is the depot-time / rural-precision open question (§9).</p>
 
 <h2>Closed</h2>
 
@@ -51,61 +55,78 @@ problems follow, stated with the same prominence.</p>
 no caller-identity check — anyone holding a reference could admit, suspend, or erase. Now: both
 require a signed <code>WriteAuth</code> from an already-registered, active facilitator, verified
 the same way every inter-participant request is.
-<span class="t"><a href="../tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-29, INV-29b</a></span></p>
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-29, INV-29b</a></span></p>
 
 <h3>2. Self-signed default disclosure policy <span class="st">— closed</span></h3>
 <p>Was: <code>defaultPolicyStore()</code> signed the policy with a throwaway key nobody else held.
 Now: <code>demoOnlyInsecurePolicyStore()</code> throws unless <code>CFP_ALLOW_DEMO_POLICY=1</code>
 is explicitly set, and warns even then; every real construction path must supply an
 operator-signed <code>PolicyStore</code>.
-<span class="t"><a href="../tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-30, INV-30b</a></span></p>
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-30, INV-30b</a></span></p>
 
 <h3>3. Adapter log-hygiene coverage <span class="st">— closed</span></h3>
 <p>Was: the privacy-lint log-hygiene scan skipped <code>adapters/</code> and
 <code>profiles/</code> — the code most likely to legitimately touch plaintext. Now it walks both;
 proven non-vacuous by injecting a PII-shaped <code>console.log</code> into a scratch adapter and
 watching the lint exit 1.
-<span class="t"><a href="../tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-31</a></span></p>
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-31</a></span></p>
 
 <h3>4. Root-secret placement <span class="st">— closed</span></h3>
 <p>Was: pairwise-ID issuance was a Zone-2 <code>Platform</code> method taking a
 <code>RootSecret</code> argument — nothing stopped it being wired to a network endpoint. Now it
 exists only as <code>Vault.issuePairwiseId</code> in Zone 1; no method on <code>Platform</code>'s
 public surface accepts a <code>RootSecret</code> — checked structurally, not by discipline.
-<span class="t"><a href="../tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-32</a></span></p>
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-32</a></span></p>
 
-<h3>5. Platform-side cross-merchant correlation <span class="st">— closed</span></h3>
+<h3>5. Platform-side cross-merchant correlation <span class="st">— closed by construction in the ledger, by convention at the call site</span></h3>
 <p>Was: <code>ConsentEntry.subject</code> was a stable root-identity reference — Platform itself
 could correlate a subject across counterparties, the exact join pairwise IDs exist to prevent for
-merchants. Now <code>subject</code> is a per-counterparty pairwise reference; two entries for the
-same real subject under different counterparties share no comparable value.
-<span class="t"><a href="../tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-33</a></span></p>
+merchants. Now <code>subject</code> is a per-counterparty pairwise reference in the ledger; two
+entries for the same real subject under different counterparties share no comparable value there.
+The caveat: <code>createGrant</code> currently accepts whatever <code>subjectRef</code> string the
+caller passes — it is pairwise "by convention in this codebase," not a type the ledger enforces.
+The convention already gets bent inside this repository's own tests (literal <code>"rider_1"</code>,
+<code>"sub_1"</code>). A nominal <code>PairwiseRef</code> type, checked at <code>createGrant</code>,
+closes this by construction — planned, not yet built.
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-33</a></span></p>
 
-<h2>Beckn alignment constraints (added after founder review — binding)</h2>
+<h2>Beckn alignment constraints (binding design decisions)</h2>
 
-<h3>3.1.1 Registry as a Beckn network-registry client <span class="st">— closed</span></h3>
-<p>Was: a self-minted registry with its own trust anchor. Now: identity is FQDN-shaped
-<code>subscriberId</code>, envelopes carry Beckn's wire format —
-<code>keyId="{subscriberId}|{keyId}|ed25519"</code>, BLAKE2b-512 canonical-body digest, the exact
-<code>(created)/(expires)/digest:</code> signing string published at developers.becknprotocol.io.
-<code>Registry</code> simulates a real network registry's subscribe/lookup surface in-process; a
-live deployment swaps the in-memory map for HTTP with zero change to envelope code.
-<span class="t"><a href="../tests/grant-core/beckn-envelope.test.ts">beckn-envelope.test.ts · INV-34</a></span></p>
+<h3>3.1.1 Registry as a Beckn-convention signing layer over a stub registry <span class="st">— envelope format closed; trust anchor and role vocabulary still self-minted</span></h3>
+<p>What changed: identity is FQDN-shaped <code>subscriberId</code>, envelopes carry Beckn's wire
+format — <code>keyId="{subscriberId}|{keyId}|ed25519"</code>, BLAKE2b-512 canonical-body digest, the
+exact <code>(created)/(expires)/digest:</code> signing string published at
+developers.becknprotocol.io. <code>Registry</code> simulates a real network registry's
+subscribe/lookup surface in-process; a live deployment swaps the in-memory map for HTTP with zero
+change to envelope code. <b>What did not change:</b> the envelope format is Beckn-shaped, but the
+trust root is not — <code>Registry</code> is still an in-process <code>Map</code> with its own
+genesis facilitator as trust anchor, not a client of any real Beckn network registry. All five
+<code>ParticipantRole</code> values (<code>merchant</code>, <code>operator</code>, <code>brand</code>,
+<code>platform</code>, <code>facilitator</code>) are locally invented and occupy the slot where
+Beckn's <code>subscriber_type</code> (BAP/BPP/BG) belongs; <code>tier</code> is a locally-defined
+accreditation ordinal, not a Beckn concept. Call this "a Beckn-convention signing layer over a stub
+registry," not "a Beckn network-registry client."
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/beckn-envelope.test.ts">beckn-envelope.test.ts · INV-34</a></span></p>
 
-<h3>3.1.2 DeDi (dedi.global) directory integration <span class="st">— closed as interface</span></h3>
+<h3>3.1.2 DeDi (dedi.global) directory integration <span class="st">— wired and tested half-step, not a drop-in</span></h3>
 <p><code>packages/directory</code> defines <code>DeDiDirectoryPort</code> — publish/lookup for
 operator label-signing keys, capability/subscriber revocations, and signed policy entries — and it
 is actually exercised: <code>OperatorKeyring.rotate()</code>, <code>Registry.suspend()</code>,
 <code>NonceLedger.revoke()</code>, and <code>PolicyStore.reload()</code> all publish through it.
 Stated plainly, here and in the file header: <code>InProcessDirectory</code> is an in-memory demo
 backend, <b>not</b> a live dedi.global integration — DeDi needs network/chain calls, which
-conflicts with the runs-entirely-offline property. The interface is the honest shape of what a
-real integration implements.
-<span class="t"><a href="../tests/grant-core/directory-port.test.ts">directory-port.test.ts · INV-35</a></span></p>
+conflicts with the runs-entirely-offline property. <b>What swapping in the real thing costs:</b>
+every port method today is synchronous and returns <code>void</code>; a network-backed
+implementation makes every call site above async — a refactor through the middle of the codebase,
+not a new adapter class behind unchanged signatures. Entries also carry no publisher proof, no
+record version, and no namespace, all three of which DeDi's real create/read surface needs. Call
+this days of work, not hours — an invitation to build it together against a real namespace, not a
+claim that it's already nearly free.
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/directory-port.test.ts">directory-port.test.ts · INV-35</a></span></p>
 
 <h3>3.1.3 No-discovery boundary <span class="st">— satisfied</span></h3>
 <p>Already true — no search/catalog/matching code exists in the repo — and now stated in as many
-words: <a href="../README.md">README § "Scope: where CFP begins"</a>. CFP begins after discovery;
+words: <a href="https://github.com/anonceleb/Kestrel/blob/main/README.md">README § "Scope: where CFP begins"</a>. CFP begins after discovery;
 every flow starts from an already-formed order/grant context.</p>
 
 <h2>Still open — pilot scope</h2>
@@ -125,8 +146,28 @@ codebase.</p>
 <h3>Depot-time resolution as a synchronous dependency <span class="st open">— open</span></h3>
 <p>Resolution is a once-per-parcel online event. In a deep-rural network the "depot" can be a
 low-connectivity branch office — whether the address-driven savings survive that reality is an
-unresolved empirical question (D-2), not a solved one. See <a href="../spec/CFP-v0.x.md">spec §9</a>.
+unresolved empirical question (D-2), not a solved one. See <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>.
 If outage-driven failures eat the savings, the design moves to asynchronous pre-resolution.</p>
+
+<h3>Threshold-split vault keys <span class="st open">— open</span></h3>
+<p>The vault's key-management (<code>Kms</code>) is single-custodian — no m-of-n split. Named as an
+open question in <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>, not attempted in this codebase.</p>
+
+<h3>The DIGIPIN precision floor is a constant, not a k-anonymity rule <span class="st open">— open</span></h3>
+<p>The address adapter truncates DIGIPIN to a fixed 6 characters (a ~0.90 km² cell) with no
+justification tied to population density anywhere in this codebase. The core does enforce a real,
+tested <code>K_ANON_FLOOR = 25</code> — but it is wired to brand-cohort visibility, never to
+geography. Against the repository's own asserted k≥50, a 6-character cell fails below roughly 55
+people/km²; against the core's enforced k=25, it fails below roughly 28 people/km². Both thresholds
+sit above large parts of rural India. The fix is an adaptive rung — shortest DIGIPIN prefix meeting
+a k-anonymity floor over bound subjects, not a constant — not yet built.</p>
+
+<h3>Gap #5's convention is not yet a construction <span class="st open">— open</span></h3>
+<p>See item 5 above: <code>Platform.createGrant</code> accepts any string as <code>subjectRef</code>
+today. The ledger enforces pairwise separation once a value is stored, but nothing stops a caller
+from passing a non-pairwise identifier in the first place. A nominal <code>PairwiseRef</code> type
+returned only by <code>derivePairwiseId</code>, checked at <code>createGrant</code>, is the planned
+fix.</p>
 
 <h2>The stewardship commitment (D-1, verbatim)</h2>
 <blockquote>A time-box whose clock the steward controls is not a time-box. Transfer to a named
@@ -137,7 +178,7 @@ twelve months.</blockquote>
 <p class="dim">The grant-core invariant suite (<code>tests/grant-core/</code>) is donated under
 Apache-2.0 today — forkable now, not conditional on the clause triggering. The clause governs who
 holds the pen after twelve months, not whether the suite is open before then. Same text in
-<a href="../spec/CFP-v0.x.md">spec/CFP-v0.x.md §8</a>.</p>
+<a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec/CFP-v0.x.md §8</a>.</p>
 
 <footer>Provenance: see <a href="./index.html#provenance">index § provenance</a>.</footer>
 </div>

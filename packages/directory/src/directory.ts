@@ -21,14 +21,20 @@
  * real dedi.global integration (HTTP calls to a public/consortium chain)
  * cannot satisfy.
  *
- * What swapping in the real thing would require: an implementation of this
- * same `DeDiDirectoryPort` interface that makes HTTP calls to dedi.global's
- * REST API (create/read a namespace, DID-style entry, and revocation list
- * per LF Decentralized Trust's DeDi protocol) instead of writing to
- * `#entries`. Every call site below (`OperatorKeyring.rotate()`,
- * `Registry.suspend()`, `NonceLedger.revoke()`, `PolicyStore.reload()`)
- * would need zero changes — they only depend on this interface, never on
- * `InProcessDirectory`'s internals.
+ * What swapping in the real thing would require — and it is not free.
+ * Every method on `DeDiDirectoryPort` below is synchronous and returns
+ * `void`; a real dedi.global backend is a network call, so a live
+ * implementation is an **async-colouring refactor through every call
+ * site** (`OperatorKeyring.rotate()`, `Registry.suspend()`,
+ * `NonceLedger.revoke()`, `PolicyStore.reload()`), not a drop-in swap of
+ * `InProcessDirectory` for an HTTP client behind the same signatures.
+ * Entries also carry no publisher proof, no record version, and no
+ * namespace — DeDi's actual create/read surface (a DID-style entry and
+ * revocation list per LF Decentralized Trust's DeDi protocol, scoped to a
+ * namespace) needs all three, and none is modeled here. Call this a wired,
+ * tested half-step, days of work rather than hours, and better done
+ * against a real namespace with the protocol's own guidance — not "swap in
+ * one adapter class, zero call-site changes."
  */
 
 export type DirectoryKeyEntry = {

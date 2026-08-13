@@ -27,10 +27,21 @@ export class PolicyInvalid extends Error {}
 export class PolicyStale extends Error {}
 export class DemoPolicyNotAllowed extends Error {}
 
-/** Today's one live disclosure rule: the minimum proofing tier a grantee must have vouched before Platform.createGrant may mint a grant. */
+/**
+ * Today's one live disclosure rule: which proofing-assurance labels are
+ * acceptable before Platform.createGrant may mint a grant.
+ *
+ * [Gap fix — de-couple from a licensed-accreditation-styled ordinal]
+ * `acceptableAssurance` is a signed allowlist of opaque labels, not a
+ * numeric floor. The protocol never compares assurance labels itself —
+ * `>=` semantics on a proofing tier is exactly the UIDAI AUA/KUA-style
+ * accreditation coupling a network with no accreditation regime cannot
+ * use. Whatever a label means, and whether labels are even ordered at
+ * all, is entirely up to what the signed policy says is acceptable.
+ */
 export type DisclosurePolicy = {
   version: number; // monotonic — reload() refuses to go backwards
-  minTierToRelease: 1 | 2 | 3;
+  acceptableAssurance: string[];
 };
 
 export type SignedPolicy = {
@@ -141,6 +152,9 @@ export function demoOnlyInsecurePolicyStore(): PolicyStore {
       "by a throwaway key discarded immediately after signing. Never use this outside a demo.",
   );
   const { publicKey, privateKey } = newKeyPair();
-  const initial = signPolicy(privateKey, "demo-only-insecure-signer", { version: 1, minTierToRelease: 2 });
+  const initial = signPolicy(privateKey, "demo-only-insecure-signer", {
+    version: 1,
+    acceptableAssurance: ["tier-2", "tier-3"],
+  });
   return new PolicyStore(publicKey, initial);
 }

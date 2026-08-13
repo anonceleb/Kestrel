@@ -15,16 +15,16 @@ export class MeridiaSortation implements RoutingPort {
     // Consumes plaintext transiently; emits a routing code, never the address.
     const key = `${address.postcode}|${address.locality}|${service}`;
     const code = createHash("sha256").update(key).digest("hex").slice(0, 10).toUpperCase();
-    return { sortationCode: `MRD-${code}` };
+    return { routingCode: `MRD-${code}` };
   }
 }
 
 export class MeridiaIdentity implements IdentityProofingPort {
-  async proof(_subjectRef: string, evidence: unknown): Promise<1 | 2 | 3> {
+  async proof(_subjectRef: string, evidence: unknown): Promise<string> {
     const e = evidence as { nationalId?: string; vouched?: boolean; delivered?: boolean };
-    if (e?.delivered) return 3;
-    if (e?.vouched) return 2;
-    if (e?.nationalId?.startsWith("MRD-")) return 1;
+    if (e?.delivered) return "tier-3";
+    if (e?.vouched) return "tier-2";
+    if (e?.nationalId?.startsWith("MRD-")) return "tier-1";
     throw new Error("insufficient evidence");
   }
 }

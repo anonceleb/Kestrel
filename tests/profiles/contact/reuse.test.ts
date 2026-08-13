@@ -28,7 +28,7 @@ test("same FulfilmentGrant type, same verify function — a mobility number-mask
     expiresAt: Date.now() + 5 * 60_000,
     singleUse: true,
     consentRef: "cns_ride_1",
-    channelKind: "door", // "door" doubles as "direct connect" — the channel enum is generic, not address-specific
+    channelKind: "direct", // a direct call connect — same generic value the address profile uses for doorstep delivery
   });
 
   // Exactly the same verify() imported from packages/capability, no wrapper.
@@ -54,7 +54,7 @@ test("end-to-end: mint -> attenuate -> redeem a contact grant through Vault/Plat
   const vault = new Vault({ kms, audit, consent, nonces, capSecret, routing: new CallRelay(), registry });
 
   const { publicKey, privateKey } = newKeyPair();
-  const policy = new PolicyStore(publicKey, signPolicy(privateKey, "mobility-operator", { version: 1, minTierToRelease: 1 }));
+  const policy = new PolicyStore(publicKey, signPolicy(privateKey, "mobility-operator", { version: 1, acceptableAssurance: ["tier-1", "tier-2", "tier-3"] }));
   const platform = new Platform({ registry, consent, capSecret, policy });
 
   const driverKeys = newKeyPair();
@@ -65,17 +65,17 @@ test("end-to-end: mint -> attenuate -> redeem a contact grant through Vault/Plat
   const pairwiseId = vault.issuePairwiseId(Buffer.alloc(32, 3), "driver-app.example");
   const rec = vault.store({
     id: "rec_rider_1", subjectRef: "rider_1", tenantId: "mobility-op",
-    payload: riderContact, geoBucket: "CALL-ANY", vouchTier: 2,
+    payload: riderContact, geoBucket: "CALL-ANY", assurance: "tier-2",
   });
   vault.bind(pairwiseId, rec.id);
-  platform.learnProjection(pairwiseId, { geoBucket: rec.geoBucket, vouchTier: 2 });
+  platform.learnProjection(pairwiseId, { geoBucket: rec.geoBucket, assurance: "tier-2" });
 
-  const req = { pairwiseId, units: 1, fulfiller: "mobility-relay", channelKind: "door" as const };
+  const req = { pairwiseId, units: 1, fulfiller: "mobility-relay", channelKind: "direct" as const };
   const env = signRequest("driver-app.example", "k1", driverKeys.privateKey, req);
   const { capability } = platform.createGrant(env, req, "rider_1");
 
   const routed = await vault.resolve(capability, "driver-app.example");
-  assert.match(routed.sortationCode, /^CALL-[0-9A-F]{10}$/);
+  assert.match(routed.routingCode, /^CALL-[0-9A-F]{10}$/);
 
   for (const enc of ["utf8", "base64", "hex"] as const) {
     const blob = Buffer.from(JSON.stringify(capability)).toString(enc);

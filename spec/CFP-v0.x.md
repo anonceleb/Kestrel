@@ -69,9 +69,21 @@ A replayed grant and a revoked grant fail identically — both throw
 deliberate: a counterparty catching by error type must not be able to
 distinguish "already used" from "the subject pulled it mid-flight," because
 that distinction would leak information the revocation design exists to
-hide. `getCapabilityStatus()` is the only place the two are told apart, and
-only to the grant's own counterparty, as exactly three states — `issued`,
-`revoked`, `expired` — never a delivery-progress feed.
+hide. This property is normative for **every** counterparty-facing surface,
+not just `Vault.resolve()`, so it holds as a meta-invariant rather than a
+per-endpoint one.
+
+Consequently `Platform.getCapabilityStatus()`, the poll a counterparty uses
+on a grant it already holds, returns exactly two states — `issued` |
+`not-actionable` — never a delivery-progress feed, and never the reason a
+grant stopped being actionable. The counterparty is the adversary this
+design protects the subject against; telling it "revoked" is telling the
+adversary the subject just acted against it.
+
+The full three-state read — `issued` | `revoked` | `expired` — exists as
+`Platform.getSubjectCapabilityStatus()`, ownership-checked against the
+*subject* who granted the capability, not the counterparty who holds it.
+Only the subject may see why their own grant stopped being actionable.
 
 ## 5. Attenuation rules
 
@@ -112,13 +124,36 @@ actor besides Vault that sees every consent entry — cannot correlate a
 subject across counterparties by comparing `subject` values, because there
 is nothing shared to compare (INV-33).
 
-## 7. Federation & vault-discovery interface
+## 7. Multi-operator handoff and federation
 
-A network with one vault operator has a kill switch and a honeypot,
-whatever the cryptography says. This is a real gap in the current
-implementation, named here rather than smoothed over: `Vault` in this repo
-is a single class, single-tenant per process. The interface a federated
-deployment needs, not yet built:
+Two distinct claims live under this heading, and bundling them reproduces
+the original cross-border/multi-operator scoping error one level down. They
+are split here (D-7) into what is supported today against a single vault,
+and what is deferred to a federated deployment.
+
+### 7.1 Multi-operator handoff against one vault — supported today
+
+A forward leg and a reverse leg run by two different legal entities against
+the *same* vault and consent ledger is expressible in shipped code now, not
+a future design. `Platform.createReturn` (`services/platform/src/platform.ts:312`)
+takes an `actorId` that is never checked against the forward leg's
+`grantedTo` — ownership is checked against the *subject* only. A return can
+therefore be routed to a carrier that never held the forward-leg grant,
+against the same `ConsentLedger`, with no redesign. Evidenced by a test
+that drives a return through a different `actorId` than the originating
+grant's counterparty and asserts the new consent entry's `grantedTo`
+differs from the original
+(`tests/grant-core/exceptions.test.ts`, "multi-operator handoff against one
+vault").
+
+### 7.2 Federated custody — deferred
+
+A network with more than one vault *operator* — separate custodians, not
+just separate counterparties against one custodian — has a kill switch and
+a honeypot, whatever the cryptography says. This is a real gap in the
+current implementation, named here rather than smoothed over: `Vault` in
+this repo is a single class, single-tenant per process. The interface a
+federated deployment needs, not yet built:
 
 - **Vault discovery.** A grant's `fulfiller` field already names the
   executing operator; a federated deployment resolves that name against a
@@ -137,11 +172,23 @@ deployment needs, not yet built:
 
 ## 7a. Registry & directory — subscriber identity and the DeDi-shaped interface
 
-`packages/registry` (`Registry`, `signRequest`, `SignedEnvelope`) is a
-**Beckn network-registry client**, not a self-minted identity scheme.
-Participants are identified by `subscriberId` (FQDN-shaped, per Beckn's
-subscriber_id convention — e.g. `merchant.example.org`), and every signed
-envelope follows Beckn's actual wire format:
+`packages/registry` (`Registry`, `signRequest`, `SignedEnvelope`) is **a
+Beckn-convention signing layer over a stub registry**, not a Beckn
+network-registry client and not a self-minted identity scheme either —
+both framings overstate or understate what it is. Participants are
+identified by `subscriberId` (FQDN-shaped, per Beckn's subscriber_id
+convention — e.g. `merchant.example.org`), and every signed envelope
+follows Beckn's actual wire format. What is not Beckn's: `Registry`'s trust
+anchor is a locally-seeded genesis facilitator in an in-process `Map`, not
+a real network registry, and `ParticipantRole`
+(`merchant | operator | brand | platform | facilitator`) is a
+locally-defined vocabulary occupying the slot where Beckn's
+`subscriber_type` (`BAP | BPP | BG`) belongs — carried as the separate,
+optional `Participant.subscriberType` field rather than conflated with
+`role`. `tier` is likewise a locally-defined accreditation ordinal, not a
+Beckn concept.
+
+What *is* Beckn's is the wire format every signed envelope follows:
 
 - `keyId="{subscriberId}|{uniqueKeyId}|ed25519"`
 - digest: BLAKE2b-512 hash of the canonical request body, base64-encoded
@@ -173,8 +220,15 @@ property, so the interface is wired in (`OperatorKeyring.rotate()`,
 `Registry.suspend()`, `NonceLedger.revoke()`, and `PolicyStore.reload()`
 all publish through it, independently verifiable by reading the same
 interface back) without a network dependency. A real deployment implements
-`DeDiDirectoryPort` against dedi.global's REST API instead; every call site
-above depends only on the interface, not on `InProcessDirectory`.
+`DeDiDirectoryPort` against dedi.global's REST API instead — but this is
+not a drop-in swap. Every port method today is synchronous and returns
+`void`; a network-backed DeDi implementation makes every call site above
+async, which is a refactor through the middle of the codebase, not a new
+adapter class behind unchanged signatures. Entries also carry no publisher
+proof, no record version, and no namespace, all three of which DeDi's real
+create/read surface needs. This is a wired, tested half-step — days of
+work to close, not hours, and better done against a real namespace with
+the protocol's own guidance.
 
 ## 8. Stewardship — the date-certain transfer clause
 
@@ -189,12 +243,16 @@ working group its author participates in but does not control.
 > clause is operative regardless of working-group status; "no group has
 > formed yet" is not a condition that extends the twelve months.
 
-This is the D-1 clause from the convergence memo between this project and
-FIDE (`Convergence_Memo_FIDE.md`, Pushback 3 and Part II §2, D-1), reproduced
-here verbatim in intent because
-a spec-text commitment is the only version of this promise that survives a
-change of author. It is restated on `web/candid-books.html` for the same
-reason.
+This clause exists because a time-boxed transfer commitment is only as
+durable as the text that carries it: a spec-text commitment is the only
+version of this promise that survives a change of author. It is restated on
+`web/candid-books.html` for the same reason.
+
+This repository carries no mark of conformance, and no participation in the
+CFP working group is gated on a conformance assessment against it. Ekumen
+LLP does not operate, and will not operate, any address-service-provider
+role in a live CFP network; this repository is a specification and
+reference-implementation donation, not an offer to run infrastructure.
 
 ## 9. What remains open
 
@@ -213,8 +271,8 @@ list is worth more than a long defensive one:
 - **Depot-time resolution as a synchronous dependency.** Resolution is a
   once-per-parcel online event on operator infrastructure. In a deep-rural
   network the "depot" can be a low-connectivity branch office, not an urban
-  sortation hub — a genuine, unresolved empirical question (see the
-  FIDE convergence memo, D-2), not a solved one.
+  sortation hub — a genuine, unresolved empirical question, not a solved
+  one.
 - **Threshold-split vault keys.** Single-custodian `Kms`, no m-of-n split.
   Named as an open question, not attempted.
 

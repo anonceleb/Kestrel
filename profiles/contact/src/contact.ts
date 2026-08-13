@@ -26,7 +26,7 @@ export type ContactRoutingPort = RoutingPort;
  * a postal RoutingPort emits a sortation code.
  */
 export class CallRelay implements RoutingPort {
-  async route(payload: ConfidentialPayload, service: string): Promise<{ sortationCode: string }> {
+  async route(payload: ConfidentialPayload, service: string): Promise<{ routingCode: string }> {
     const contact = asContactPayload(payload);
     const { createHash } = await import("node:crypto");
     const code = createHash("sha256")
@@ -34,6 +34,6 @@ export class CallRelay implements RoutingPort {
       .digest("hex")
       .slice(0, 10)
       .toUpperCase();
-    return { sortationCode: `CALL-${code}` };
+    return { routingCode: `CALL-${code}` };
   }
 }

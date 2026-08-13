@@ -22,14 +22,28 @@ import type { DeDiDirectoryPort } from "../../directory/src/directory.ts";
 
 export type Caveats = {
   pairwiseId: string;
-  purpose: "delivery" | "return" | "redirect";
+  /**
+   * Generic across profiles by reuse, not by name-only convention: the
+   * contact profile mints a call-connect grant with `purpose: "delivery"`
+   * too (see tests/profiles/contact) — this is the same value, not a
+   * profile-specific alias of it. `"redirect"` was removed: no code path
+   * ever produces it. `Platform.redirectDelivery` reissues a grant that
+   * inherits the *original* purpose (always `"delivery"`) with a narrowed
+   * `channelKind` — see D-4's resolution in spec §5.
+   */
+  purpose: "delivery" | "return";
   maxUnits: number;
   fulfiller: string;
   expiresAt: number;
   singleUse: boolean;
   consentRef: string;
-  /** Delivery to an access point needs no address at all — the zero-attribute path. */
-  channelKind: "door" | "access-point" | "locker";
+  /**
+   * How the action reaches the subject — generic across profiles: `"direct"`
+   * is doorstep delivery in the address profile and a direct call connect in
+   * the contact profile, the identical value reused rather than aliased.
+   * `"access-point"` needs no address at all — the zero-attribute path.
+   */
+  channelKind: "direct" | "access-point" | "locker";
 };
 
 export type Capability = {

@@ -17,10 +17,35 @@ test("INV-14: a return grant may never exceed the originating grant's scope", as
   assert.ok(returnCap.caveats.expiresAt <= capability.caveats.expiresAt);
 });
 
+test("INV-15: a failed-delivery notification reaches the consumer, never the merchant — restored, previously dropped without replacement", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const notified: Array<{ subjectRef: string; event: string }> = [];
+  const notifications = { notify: (subjectRef: string, event: string) => notified.push({ subjectRef, event }) };
+  h.vault.notifyFailedDelivery(capability, notifications);
+  assert.deepEqual(notified, [{ subjectRef: "sub_1", event: "failed-delivery" }]);
+  // The merchant/counterparty id never appears — Vault.notifyFailedDelivery has no way to reach
+  // it (it never holds a subscriberId to notify), which is the disclosure-asymmetry property.
+  assert.ok(!notified.some((n) => n.subjectRef === "counterparty.example"));
+});
+
 test("returns are ownership-checked: a stranger subjectRef cannot self-mint a return", async () => {
   const h = harness();
   const { capability } = await grantOnce(h);
   assert.throws(() => h.platform.createReturn(capability, "counterparty.example", "not-the-real-subject"), NotAuthorized);
+});
+
+test("multi-operator handoff against one vault: a return's actorId is never checked against the forward leg's grantedTo — spec §7's 'supported today' claim, evidenced", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h); // forward leg minted for "counterparty.example"
+  // The reverse leg is a different legal entity — createReturn is ownership-checked against the
+  // subject, never against who held the forward-leg grant, so this succeeds against the same
+  // Vault/ConsentLedger the forward leg used.
+  const returnCap = h.platform.createReturn(capability, "reverse-leg-carrier.example", "sub_1");
+  assert.equal(returnCap.caveats.purpose, "return");
+  const entry = h.consent.find(returnCap.caveats.consentRef);
+  assert.equal(entry?.grantedTo, "reverse-leg-carrier.example");
+  assert.notEqual(entry?.grantedTo, "counterparty.example");
 });
 
 test("INV-16: revocation kills a grant the counterparty believes is still valid", async () => {
@@ -60,6 +85,17 @@ test("INV-18: refund-without-return makes zero vault calls", async () => {
   assert.equal(vaultCalled, false, "refund must never call Vault.resolve()");
 });
 
+test("INV-24: refund is ownership-checked — a stranger subjectRef cannot refund someone else's capability — restored, previously dropped without replacement", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  assert.throws(
+    () => h.platform.refund(capability, "counterparty.example", "someone-else"),
+    NotAuthorized,
+  );
+  // The sanctioned path still succeeds — this is an ownership check, not a blanket rejection.
+  h.platform.refund(capability, "counterparty.example", "sub_1");
+});
+
 test("attenuateToReturn still cannot widen: expiry/units narrowing is structurally enforced", async () => {
   const h = harness();
   const { capability } = await grantOnce(h);
@@ -74,11 +110,59 @@ test("attenuateToReturn still cannot widen: expiry/units narrowing is structural
   assert.ok(returnCap); // sanity: the sanctioned path above did succeed
 });
 
-test("INV-27: a counterparty's capability-status read is ownership-checked and exactly three states", async () => {
+test("INV-27: a counterparty's capability-status read is ownership-checked and exactly two states, and never reveals revocation", async () => {
   const h = harness();
   const { capability } = await grantOnce(h);
   assert.equal(h.platform.getCapabilityStatus(capability.id, "counterparty.example"), "issued");
   assert.throws(() => h.platform.getCapabilityStatus(capability.id, "someone-else.example"), NotAuthorized);
   h.platform.revoke(capability.id, "sub_1");
-  assert.equal(h.platform.getCapabilityStatus(capability.id, "counterparty.example"), "revoked");
+  // Not "revoked" — the counterparty is the adversary a revocation is usually raised against,
+  // and "not-actionable" is the only word this surface is allowed to say.
+  assert.equal(h.platform.getCapabilityStatus(capability.id, "counterparty.example"), "not-actionable");
+});
+
+test("the subject's own capability-status read is ownership-checked against subject, not grantedTo, and sees all three states", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  assert.equal(h.platform.getSubjectCapabilityStatus(capability.id, "sub_1"), "issued");
+  assert.throws(
+    () => h.platform.getSubjectCapabilityStatus(capability.id, "counterparty.example"),
+    NotAuthorized,
+  );
+  h.platform.revoke(capability.id, "sub_1");
+  assert.equal(h.platform.getSubjectCapabilityStatus(capability.id, "sub_1"), "revoked");
+});
+
+test("meta-invariant: no counterparty-facing projection distinguishes subject-initiated termination from any other termination", async () => {
+  // Surface 1: Platform.getCapabilityStatus (and the SDK's getStatus wrapper around it) —
+  // revoked and expired must be indistinguishable to the counterparty.
+  const hRevoked = harness();
+  const { capability: revokedCap } = await grantOnce(hRevoked);
+  hRevoked.platform.revoke(revokedCap.id, "sub_1");
+  const revokedStatus = hRevoked.platform.getCapabilityStatus(revokedCap.id, "counterparty.example");
+
+  const hExpired = harness();
+  const { capability: expiredCap } = await grantOnce(hExpired);
+  hExpired.consent.tamperForDemo(hExpired.consent.entries().length - 1, (e) => {
+    e.expiresAt = Date.now() - 1;
+  });
+  const expiredStatus = hExpired.platform.getCapabilityStatus(expiredCap.id, "counterparty.example");
+
+  assert.equal(revokedStatus, expiredStatus, "revoked and expired must read identically to a counterparty");
+  assert.equal(revokedStatus, "not-actionable");
+
+  // Surface 2: Vault.resolve() — a replayed grant and a revoked one already throw the identical
+  // error shape (see profiles/address/invariants.test.ts). Re-assert it here at the core level so
+  // this test is the single place that documents every counterparty-facing surface at once.
+  const h2 = harness();
+  const { capability: cap2 } = await grantOnce(h2);
+  await h2.vault.resolve(cap2, "counterparty.example");
+  const replayError = await h2.vault.resolve(cap2, "counterparty.example").catch((e) => e);
+
+  const h3 = harness();
+  const { capability: cap3 } = await grantOnce(h3);
+  h3.platform.revoke(cap3.id, "sub_1");
+  const revokedError = await h3.vault.resolve(cap3, "counterparty.example").catch((e) => e);
+
+  assert.equal(replayError.constructor, revokedError.constructor);
 });

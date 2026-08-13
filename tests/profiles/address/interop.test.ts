@@ -20,7 +20,7 @@ import { DakhilSortation, DakhilIdentity, NoCustodyKey, geoBucketFor as dakhilGe
 import { IndiaPostRouting, IndiaPostIdentity, IndiaPostNoCustodyKey, geoBucketFor as indiaGeoBucketFor } from "../../../adapters/india-post/src/adapter.ts";
 import { operatorPolicy } from "./harness.ts";
 
-function opHarness(routing: { route(p: unknown, s: string): Promise<{ sortationCode: string }> }) {
+function opHarness(routing: { route(p: unknown, s: string): Promise<{ routingCode: string }> }) {
   const kms = new Kms();
   const audit = new AuditLog();
   const consent = new ConsentLedger();
@@ -38,7 +38,7 @@ test("interop: core builds unmodified against dakhil-post's different address fo
   const address: AddressPayload = { line1: "Near Hanuman Mandir", locality: "Kotra Sadatganj", postcode: "", placeName: "Ratanpur" };
   const rec = h.vault.store({
     id: "rec_dkh_1", subjectRef: "sub_dkh_1", tenantId: "dakhil-post",
-    payload: address, geoBucket: dakhilGeoBucketFor(address), vouchTier: 2,
+    payload: address, geoBucket: dakhilGeoBucketFor(address), assurance: "tier-2",
   });
   const projection = h.vault.publicProjection(rec.id);
   assert.equal(projection?.geoBucket, "DKH-RA");
@@ -50,7 +50,7 @@ test("interop: core builds unmodified against india-post's DIGIPIN routing", asy
   const address: AddressPayload = { line1: "Plot 7", locality: "Sector 12", postcode: "110001", digipin: "39J438TJC7" };
   const rec = h.vault.store({
     id: "rec_ind_1", subjectRef: "sub_ind_1", tenantId: "india-post",
-    payload: address, geoBucket: indiaGeoBucketFor(address.digipin!), vouchTier: 2,
+    payload: address, geoBucket: indiaGeoBucketFor(address.digipin!), assurance: "tier-2",
   });
   const projection = h.vault.publicProjection(rec.id);
   assert.equal(projection?.geoBucket, "IND-39J438");
@@ -66,10 +66,10 @@ test("interop: no sortation-code or geo-bucket collisions across all three opera
   const d = await dakhil.route(address, "standard");
   const i = await india.route(address, "standard");
 
-  assert.match(m.sortationCode, /^MRD-/);
-  assert.match(d.sortationCode, /^DKH-/);
-  assert.match(i.sortationCode, /^IND-/);
-  const codes = new Set([m.sortationCode, d.sortationCode, i.sortationCode]);
+  assert.match(m.routingCode, /^MRD-/);
+  assert.match(d.routingCode, /^DKH-/);
+  assert.match(i.routingCode, /^IND-/);
+  const codes = new Set([m.routingCode, d.routingCode, i.routingCode]);
   assert.equal(codes.size, 3, "no two operators may ever emit the same sortation code");
 
   const buckets = new Set([
@@ -103,6 +103,6 @@ test("interop: india-post proofs only against a signed registry attestation, cap
   });
   const body = { subjectRef: "sub_1", claim: "vouched-in-person" };
   const envelope = signRequest("issuer.gramin-dak-sevak.example", "k1", issuer.privateKey, body);
-  const tier = await identity.proof("sub_1", { envelope, body, requestedTier: 3 });
-  assert.equal(tier, 2);
+  const assurance = await identity.proof("sub_1", { envelope, body, requestedTier: 3 });
+  assert.equal(assurance, "tier-2");
 });

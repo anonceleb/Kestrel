@@ -66,13 +66,13 @@ test("INV-35: NonceLedger.revoke() publishes a capability revocation through the
 test("INV-35: PolicyStore.reload() publishes the newly active policy through the directory", () => {
   const directory = new InProcessDirectory();
   const { publicKey, privateKey } = newKeyPair();
-  const initial = signPolicy(privateKey, "op-signer", { version: 1, minTierToRelease: 2 });
+  const initial = signPolicy(privateKey, "op-signer", { version: 1, acceptableAssurance: ["tier-2", "tier-3"] });
   const store = new PolicyStore(publicKey, initial, directory);
 
   // Genesis policy is not published — only reload()s are (per the plan's wiring note).
   assert.equal(directory.lookupPolicy(initial.hash), undefined);
 
-  const next = signPolicy(privateKey, "op-signer", { version: 2, minTierToRelease: 3 });
+  const next = signPolicy(privateKey, "op-signer", { version: 2, acceptableAssurance: ["tier-3"] });
   store.reload(next);
 
   const published = directory.lookupPolicy(next.hash);

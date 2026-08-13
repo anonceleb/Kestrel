@@ -38,7 +38,7 @@ step(0.5, "The operator signs its own disclosure policy — no self-signed Platf
 const operatorKeys = newKeyPair();
 const policy = new PolicyStore(
   operatorKeys.publicKey,
-  signPolicy(operatorKeys.privateKey, "operator-network-authority", { version: 1, minTierToRelease: 2 }),
+  signPolicy(operatorKeys.privateKey, "operator-network-authority", { version: 1, acceptableAssurance: ["tier-2", "tier-3"] }),
 );
 
 const vault = new Vault({ kms, audit, consent, nonces, capSecret, routing: new MeridiaSortation(), registry });
@@ -59,7 +59,7 @@ const root = newRootSecret();
 const address: AddressPayload = { line1: "14 Harbour Lane", locality: "Calder", postcode: "4820" };
 const rec = vault.store({
   id: "rec_1", subjectRef: "sub_1", tenantId: "meridia-post",
-  payload: address, geoBucket: geoBucketFor(address.postcode), vouchTier: 2,
+  payload: address, geoBucket: geoBucketFor(address.postcode), assurance: "tier-2",
 });
 line(`    sealed. ciphertext=${rec.ciphertext.ct.slice(0, 24)}...  geoBucket=${rec.geoBucket}`);
 
@@ -68,7 +68,7 @@ const idA = vault.issuePairwiseId(root, "alba-goods.example");
 const idB = vault.issuePairwiseId(root, "corvid-tools.example");
 vault.bind(idA, rec.id);
 vault.bind(idB, rec.id);
-platform.learnProjection(idA, { geoBucket: rec.geoBucket, vouchTier: 2 });
+platform.learnProjection(idA, { geoBucket: rec.geoBucket, assurance: "tier-2" });
 line(`    alba-goods sees   ${idA}`);
 line(`    corvid-tools sees ${idB}`);
 line(`    -> no join key. The two databases cannot be merged on this person.`);
@@ -94,7 +94,7 @@ line(`    verified OFFLINE with no vault, no network: capabilityId=${verified.ca
 
 step(7, "The vault resolves the grant exactly once — audited before plaintext exists.");
 const routed = await vault.resolve(capability, "alba-goods.example");
-line(`    routed -> ${routed.sortationCode}`);
+line(`    routed -> ${routed.routingCode}`);
 try {
   await vault.resolve(capability, "alba-goods.example");
 } catch (err) {

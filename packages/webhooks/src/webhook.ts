@@ -14,7 +14,7 @@ export type WebhookConfig = { url: string; secret: string };
 
 /** What a counterparty's endpoint actually receives on a successful grant — no attribute-shaped field, same discipline as GrantResult. */
 export type CheckoutCompletedPayload = { capabilityId: string; pairwiseId: string };
-/** What a counterparty's endpoint receives on a rejected grant request — the same message shape TierTooLow/QuotaExceeded already throw with. */
+/** What a counterparty's endpoint receives on a rejected grant request — the same message shape AssuranceNotAccepted/QuotaExceeded already throw with. */
 export type CheckoutFailedPayload = { reason: string };
 
 export type WebhookEvent =

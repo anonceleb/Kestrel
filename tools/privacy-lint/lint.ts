@@ -20,6 +20,17 @@ import { join } from "node:path";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 
+// CFP_LINT_EXTRA_LOG_DIR adds one more directory to check 3's log-hygiene
+// walk, outside this repository (e.g. under os.tmpdir()). This lets a test
+// prove the log-hygiene scan catches a violation without ever writing a
+// probe file into the tree being linted.
+const EXTRA_LOG_DIR = process.env.CFP_LINT_EXTRA_LOG_DIR;
+
+// CFP_LINT_EXTRA_TYPE_DIR does the same for check 4 (address-shaped
+// identifiers in exported types), so the four evasion probes can be tested
+// as fixtures without writing into packages/.
+const EXTRA_TYPE_DIR = process.env.CFP_LINT_EXTRA_TYPE_DIR;
+
 const PII_SHAPED = [
   "address", "line1", "line2", "street", "postcode", "postalcode",
   "fullname", "firstname", "lastname", "phone", "msisdn", "email",
@@ -28,7 +39,7 @@ const PII_SHAPED = [
 
 /** Address-shaped field/identifier names that must not appear in the generic core's exported types. */
 const ADDRESS_SHAPED_FIELDS = [
-  "address", "line1", "line2", "street", "postcode", "locality", "placename",
+  "address", "line1", "line2", "street", "postcode", "postalcode", "locality", "placename",
 ];
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -89,6 +100,7 @@ for (const { file, type } of ZONE3_TYPES) {
 const logDirs = ["packages", "services", "adapters", "profiles"]
   .map((d) => join(ROOT, d))
   .filter(exists);
+if (EXTRA_LOG_DIR && exists(EXTRA_LOG_DIR)) logDirs.push(EXTRA_LOG_DIR);
 for (const d of logDirs) {
   for (const f of walk(d)) {
     const src = readFileSync(f, "utf8");
@@ -103,14 +115,26 @@ for (const d of logDirs) {
 // --- check 4: no address-shaped identifiers in packages/'s exported types --
 // (outside profiles/, which is where the address profile's concrete
 // ConfidentialPayload shape is deliberately allowed to live).
-if (exists(join(ROOT, "packages"))) {
-  for (const f of walk(join(ROOT, "packages"))) {
+const typeDirs = [join(ROOT, "packages")].filter(exists);
+if (EXTRA_TYPE_DIR && exists(EXTRA_TYPE_DIR)) typeDirs.push(EXTRA_TYPE_DIR);
+for (const typeDir of typeDirs) {
+  for (const f of walk(typeDir)) {
     const src = readFileSync(f, "utf8");
-    for (const decl of src.matchAll(/export\s+(?:type|interface)\s+(\w+)[^{]*\{([\s\S]*?)\n\}/g)) {
+    // Body terminator is `\}` (any whitespace before it), not `\n\}` — a
+    // single-line declaration (`export type Foo = { address: string };`)
+    // has no newline before its closing brace and was previously invisible
+    // to this check entirely.
+    for (const decl of src.matchAll(/export\s+(?:type|interface)\s+(\w+)[^{]*\{([\s\S]*?)\s*\}/g)) {
       const [, typeName, body] = decl;
-      for (const field of body!.matchAll(/^\s*(\w+)\??:/gm)) {
+      if (ADDRESS_SHAPED_FIELDS.some((p) => typeName!.toLowerCase().includes(p))) {
+        failures.push(`address-shaped type name in core: ${typeName} (${f})`);
+      }
+      for (const field of body!.matchAll(/(\w+)\??:/g)) {
         const name = field[1]!.toLowerCase();
-        if (ADDRESS_SHAPED_FIELDS.includes(name)) {
+        // Substring match, matching check 2's PII_SHAPED behaviour — exact
+        // membership let deliveryAddress, postalCode and street_name evade
+        // this check entirely, single-line or not.
+        if (ADDRESS_SHAPED_FIELDS.some((p) => name.includes(p))) {
           failures.push(`address-shaped identifier in core: ${typeName}.${field[1]} (${f})`);
         }
       }

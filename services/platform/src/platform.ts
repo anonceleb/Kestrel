@@ -42,18 +42,28 @@ import {
   type DeliveryAttempt,
 } from "../../../packages/webhooks/src/webhook.ts";
 
-export class TierTooLow extends Error {}
+export class AssuranceNotAccepted extends Error {}
 export class UnknownCapability extends Error {}
 export class NotAuthorized extends Error {}
 
 /**
- * A counterparty polling the status of a grant it already holds — a pull,
- * never a push. Deliberately three states, no more: "issued" does not mean
- * "in transit" or "out for delivery". Platform shares a ConsentLedger with
+ * The counterparty is the adversary in this threat model — the same
+ * adversary a revocation is usually raised against. A counterparty-facing
+ * status read may therefore never distinguish "the subject revoked this"
+ * from "this expired" from any other reason a grant stopped being usable:
+ * that distinction is exactly the information a revoking subject needs kept
+ * from the counterparty. Two states, no more.
+ */
+export type CounterpartyCapabilityStatus = "issued" | "not-actionable";
+
+/**
+ * The subject polling the status of their own grant — a pull, never a
+ * push. Deliberately three states, no more: "issued" does not mean "in
+ * transit" or "out for delivery". Platform shares a ConsentLedger with
  * Vault but not a nonce store — it genuinely has no way to know whether
  * Vault has redeemed this grant.
  */
-export type CapabilityStatus = "issued" | "revoked" | "expired";
+export type SubjectCapabilityStatus = "issued" | "revoked" | "expired";
 
 export type FulfilmentRequest = {
   pairwiseId: string;
@@ -85,7 +95,7 @@ export class Platform {
    */
   #nonces: NonceLedger;
   /** Only what Zone 1 chose to project. No ciphertext keys, no confidential payloads. */
-  #projections = new Map<string, { geoBucket: string; vouchTier: 1 | 2 | 3 }>();
+  #projections = new Map<string, { geoBucket: string; assurance: string }>();
   /** capabilityId -> the consentRef it was minted against. */
   #capabilityConsent = new Map<string, string>();
   /** Signed, versioned, hot-reloadable disclosure rules. See packages/policy/src/policy.ts. */
@@ -122,13 +132,33 @@ export class Platform {
     return this.#policy;
   }
 
-  /** See the CapabilityStatus docstring above for why this is exactly three states. Ownership-checked against consent.grantedTo. */
-  getCapabilityStatus(capabilityId: string, subscriberId: string): CapabilityStatus {
+  /**
+   * See the CounterpartyCapabilityStatus docstring above for why this is
+   * exactly two states. Ownership-checked against consent.grantedTo.
+   */
+  getCapabilityStatus(capabilityId: string, subscriberId: string): CounterpartyCapabilityStatus {
     const consentRef = this.#capabilityConsent.get(capabilityId);
     if (!consentRef) throw new UnknownCapability(capabilityId);
     const entry = this.#consent.find(consentRef);
     if (!entry || entry.grantedTo !== subscriberId) {
       throw new NotAuthorized(`capability ${capabilityId} does not belong to participant ${subscriberId}`);
+    }
+    const actionable = !this.#consent.isRevoked(consentRef) && Date.now() <= entry.expiresAt;
+    return actionable ? "issued" : "not-actionable";
+  }
+
+  /**
+   * See the SubjectCapabilityStatus docstring above for why this is exactly
+   * three states. Ownership-checked against consent.subject, not
+   * consent.grantedTo — only the subject who granted this capability may
+   * see why it stopped being actionable.
+   */
+  getSubjectCapabilityStatus(capabilityId: string, subjectRef: string): SubjectCapabilityStatus {
+    const consentRef = this.#capabilityConsent.get(capabilityId);
+    if (!consentRef) throw new UnknownCapability(capabilityId);
+    const entry = this.#consent.find(consentRef);
+    if (!entry || entry.subject !== subjectRef) {
+      throw new NotAuthorized(`capability ${capabilityId} does not belong to subject ${subjectRef}`);
     }
     if (this.#consent.isRevoked(consentRef)) return "revoked";
     if (Date.now() > entry.expiresAt) return "expired";
@@ -149,7 +179,7 @@ export class Platform {
     void this.#webhookDispatcher.deliver(config, event).catch(() => {});
   }
 
-  learnProjection(pairwiseId: string, p: { geoBucket: string; vouchTier: 1 | 2 | 3 }): void {
+  learnProjection(pairwiseId: string, p: { geoBucket: string; assurance: string }): void {
     this.#projections.set(pairwiseId, p);
   }
 
@@ -157,10 +187,13 @@ export class Platform {
    * Every grant is minted against a fresh, per-event consent record.
    * Standing consent is not representable in this API — by design.
    *
-   * The minimum tier a counterparty must have vouched is read off
+   * Which proofing-assurance labels are acceptable is read off
    * `this.#policy.active()`, a signed artifact, and that policy's hash
    * rides along on the consent entry so this exact decision stays
-   * replayable against the rules that were actually in force.
+   * replayable against the rules that were actually in force. The check
+   * below is list membership, not an ordinal comparison — the protocol
+   * does not interpret what an assurance label means, only whether the
+   * signed policy currently accepts it.
    *
    * [Gap fix — §2 item 7] The consent entry's `subject` is `subjectRef` as
    * passed by the caller, which by convention in this codebase is already a
@@ -177,8 +210,8 @@ export class Platform {
     const proj = this.#projections.get(req.pairwiseId);
     if (!proj) throw new Error("unknown pairwiseId");
     const activePolicy = this.#policy.active();
-    if (proj.vouchTier < activePolicy.policy.minTierToRelease) {
-      throw new TierTooLow(`tier ${proj.vouchTier} < ${activePolicy.policy.minTierToRelease}`);
+    if (!activePolicy.policy.acceptableAssurance.includes(proj.assurance)) {
+      throw new AssuranceNotAccepted(`assurance '${proj.assurance}' not in policy's acceptable set`);
     }
 
     const consent = this.#consent.append({
@@ -208,7 +241,7 @@ export class Platform {
       merchantView: {
         pairwiseId: req.pairwiseId,
         geoBucket: proj.geoBucket,
-        verifiedTier: proj.vouchTier,
+        verifiedAssurance: proj.assurance,
         serviceLevel: "standard",
         estimatedDelivery: "3-5 days",
       },

@@ -132,13 +132,13 @@ const root = newRootSecret();
 const pid = vault.issuePairwiseId(root, LSP);
 vault.store({ id: "rec-a", subjectRef: "subj-a", tenantId: "indiapost",
   payload: { line1: "14 Harbour Lane", locality: "Calder", postcode: "482001", digipin: "39J49L8T4C" },
-  geoBucket: geoBucketFor("39J49L8T4C"), vouchTier: 2 });
+  geoBucket: geoBucketFor("39J49L8T4C"), assurance: "tier-2" });
 vault.bind(pid, "rec-a");
 const c = consent.append({ subject: pid, grantedTo: LSP, purpose: "delivery",
   scope: ["fulfil"], at: Date.now(), expiresAt: Date.now() + 86400000 });
 const mkGrant = () => mint(capSecret, { pairwiseId: pid, purpose: "delivery", maxUnits: 1,
   fulfiller: "standard", expiresAt: Date.now() + 86400000, singleUse: true,
-  consentRef: c.ref, channelKind: "door" });
+  consentRef: c.ref, channelKind: "direct" });
 
 document.getElementById("setup").textContent =
 `registry: ${FAC} (genesis) admits ${LSP} via signed WriteAuth

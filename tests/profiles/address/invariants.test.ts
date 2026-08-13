@@ -40,8 +40,8 @@ test("INV-7 (address profile): no cohort below k=25 is ever exposed", () => {
 
 test("INV-12 (address profile): co-residents cannot enumerate each other through a shared address", () => {
   const rows = [
-    { addressRecordId: "rec_1", subjectRef: "sub_1", barrier: false },
-    { addressRecordId: "rec_1", subjectRef: "sub_2", barrier: false },
+    { cohortRecordId: "rec_1", subjectRef: "sub_1", barrier: false },
+    { cohortRecordId: "rec_1", subjectRef: "sub_2", barrier: false },
   ];
   assert.deepEqual(visibleCoResidents(rows, "sub_1", "rec_1"), ["sub_2"]);
 });

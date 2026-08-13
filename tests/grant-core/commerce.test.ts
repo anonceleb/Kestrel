@@ -11,7 +11,7 @@ import { harness } from "./harness.ts";
 
 test("metering: a participant over quota is rejected before minting runs", async () => {
   const h = harness();
-  const req = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "door" as const };
+  const req = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const env = signRequest("counterparty.example", "k1", h.mk.privateKey, req);
   // Swap in a 1-call meter for this platform instance's participant.
   const meter = new UsageMeter({ limit: 1, windowMs: 60_000 });
@@ -22,11 +22,11 @@ test("metering: a participant over quota is rejected before minting runs", async
 
 test("[A10] requestGrant/processBatch: async settlement delivers via onGrantReady, isolating one failure from another", async () => {
   const h = harness();
-  const goodReq = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "door" as const };
+  const goodReq = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const goodEnv = signRequest("counterparty.example", "k1", h.mk.privateKey, goodReq);
   const { transactionId: goodTxn } = h.platform.requestGrant(goodEnv, goodReq, "sub_1");
 
-  const badReq = { pairwiseId: "CFP-NOPE-NOPE-NOPE", units: 1, fulfiller: "NTR-OP", channelKind: "door" as const };
+  const badReq = { pairwiseId: "CFP-NOPE-NOPE-NOPE", units: 1, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const badEnv = signRequest("counterparty.example", "k1", h.mk.privateKey, badReq);
   const { transactionId: badTxn } = h.platform.requestGrant(badEnv, badReq, "sub_1");
 
@@ -58,7 +58,7 @@ test("webhooks: HMAC-signed, real fetch() delivery with bounded retry", async ()
   const secret = newWebhookSecret();
   h.platform.registerWebhook("counterparty.example", { url: `http://127.0.0.1:${port}`, secret });
 
-  const req = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "door" as const };
+  const req = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const env = signRequest("counterparty.example", "k1", h.mk.privateKey, req);
   h.platform.requestGrant(env, req, "sub_1");
   h.platform.processBatch();

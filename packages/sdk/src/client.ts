@@ -13,21 +13,23 @@
 import { signRequest } from "../../registry/src/signing.ts";
 import {
   Platform,
-  TierTooLow,
+  AssuranceNotAccepted,
   type FulfilmentRequest,
-  type CapabilityStatus,
+  type CounterpartyCapabilityStatus,
 } from "../../../services/platform/src/platform.ts";
 import { QuotaExceeded } from "../../metering/src/meter.ts";
 import type { WebhookConfig } from "../../webhooks/src/webhook.ts";
 
-export { TierTooLow, QuotaExceeded };
-export type { FulfilmentRequest, CapabilityStatus, WebhookConfig };
+export { AssuranceNotAccepted, QuotaExceeded };
+export type { FulfilmentRequest, CounterpartyCapabilityStatus, WebhookConfig };
 
 /**
  * What an integration actually receives — deliberately not the internal
  * `MerchantView`. `verifiedHuman` is the "worth more than attribute data"
  * signal: a counterparty that only wants to know "is this a real, distinct,
- * tier-checked subject" never needs to think about tier numbers at all.
+ * assurance-checked subject" never needs to think about the assurance
+ * label's internal meaning at all — that interpretation belongs to the
+ * signed disclosure policy, not to this SDK.
  */
 export type GrantResult = {
   pairwiseId: string;
@@ -38,8 +40,8 @@ export type GrantResult = {
   verifiedHuman: boolean;
 };
 
-export function isVerifiedHuman(tier: 1 | 2 | 3): boolean {
-  return tier >= 1;
+export function isVerifiedHuman(assurance: string): boolean {
+  return assurance.length > 0;
 }
 
 /**
@@ -70,7 +72,7 @@ export class FulfilmentClient {
       geoBucket: merchantView.geoBucket,
       serviceLevel: merchantView.serviceLevel,
       estimatedDelivery: merchantView.estimatedDelivery,
-      verifiedHuman: isVerifiedHuman(merchantView.verifiedTier),
+      verifiedHuman: isVerifiedHuman(merchantView.verifiedAssurance),
     };
   }
 
@@ -89,7 +91,7 @@ export class FulfilmentClient {
         geoBucket: r.merchantView.geoBucket,
         serviceLevel: r.merchantView.serviceLevel,
         estimatedDelivery: r.merchantView.estimatedDelivery,
-        verifiedHuman: isVerifiedHuman(r.merchantView.verifiedTier),
+        verifiedHuman: isVerifiedHuman(r.merchantView.verifiedAssurance),
       });
     });
   }
@@ -100,7 +102,7 @@ export class FulfilmentClient {
   }
 
   /** A pull, not a push: this integration asking about a grant it already holds. */
-  getStatus(capabilityId: string): { status: CapabilityStatus } {
+  getStatus(capabilityId: string): { status: CounterpartyCapabilityStatus } {
     return { status: this.#platform.getCapabilityStatus(capabilityId, this.#subscriberId) };
   }
 

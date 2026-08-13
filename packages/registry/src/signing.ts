@@ -1,5 +1,16 @@
 /**
- * Beckn network-registry client: subscriber identity + request signing.
+ * A Beckn-convention signing layer over a stub registry — not a Beckn
+ * network-registry client. `Registry` is an in-process `Map` with its own
+ * genesis facilitator as trust anchor; nothing here is a client of, or
+ * synced with, any real Beckn/ONDC network registry. What *is* Beckn's is
+ * the envelope wire format below (verified against the published spec) and
+ * the FQDN-shaped `subscriberId` convention. What is *not* Beckn's:
+ * `ParticipantRole` (`merchant | operator | brand | platform |
+ * facilitator`) is a locally-defined vocabulary that occupies the slot
+ * where Beckn's `subscriber_type` (`BAP | BPP | BG`) belongs, and `tier` is
+ * a locally-defined accreditation ordinal, not a Beckn concept. See
+ * `Participant.subscriberType` below for the two vocabularies kept
+ * separate rather than conflated.
  *
  * `Registry` here **simulates the wire protocol of a real Beckn network
  * registry's subscribe/lookup surface, in-process.** A real deployment
@@ -70,15 +81,37 @@ import {
 } from "node:crypto";
 import type { DeDiDirectoryPort } from "../../directory/src/directory.ts";
 
+/** Locally-defined CFP role vocabulary — not Beckn's subscriber_type. See Participant.subscriberType. */
 export type ParticipantRole = "merchant" | "operator" | "brand" | "platform" | "facilitator";
+
+/** Beckn's own network-participant vocabulary, per the Beckn protocol spec. */
+export type BecknSubscriberType = "BAP" | "BPP" | "BG";
 
 export type Participant = {
   /** FQDN-shaped, per Beckn's subscriber_id convention (e.g. "merchant.example.org"). */
   subscriberId: string;
   role: ParticipantRole;
+  /**
+   * Beckn's own subscriber_type, carried as a distinct, optional field —
+   * deliberately not derived from `role`. The two vocabularies answer
+   * different questions (CFP's local grant-scope role vs. Beckn's
+   * network-participant class) and asserting a mapping between them here
+   * would be exactly the self-minted-vocabulary problem this field exists
+   * to avoid. Left unset in this demo; a real deployment sets it from the
+   * network registry it actually joins.
+   */
+  subscriberType?: BecknSubscriberType;
   keyId: string;
   publicKey: string; // base64 raw SPKI
-  /** Accreditation tier, after UIDAI's AUA/KUA licensing model. Gates grant scope. */
+  /**
+   * A locally-defined accreditation ordinal, after UIDAI's AUA/KUA
+   * licensing model — informational registry metadata about the
+   * participant. It does not gate grant issuance: that decision is made by
+   * `DisclosurePolicy.acceptableAssurance`, an opaque label the subject's
+   * proofing evidence is checked against, kept deliberately separate from
+   * this field so a network with no accreditation regime can still use the
+   * grant grammar.
+   */
   tier: 1 | 2 | 3;
   status: "active" | "suspended";
 };

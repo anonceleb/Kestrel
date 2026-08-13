@@ -40,7 +40,7 @@ export class IndiaPostRouting implements RoutingPort {
     // Consumes plaintext transiently; emits a routing code, never the DIGIPIN or address.
     const key = `${address.digipin}|${service}`;
     const code = createHash("sha256").update(key).digest("hex").slice(0, 10).toUpperCase();
-    return { sortationCode: `IND-${code}` };
+    return { routingCode: `IND-${code}` };
   }
 }
 
@@ -52,14 +52,18 @@ export class IndiaPostIdentity implements IdentityProofingPort {
     this.#registry = registry;
   }
 
-  async proof(_subjectRef: string, evidence: unknown): Promise<1 | 2 | 3> {
+  async proof(_subjectRef: string, evidence: unknown): Promise<string> {
     const e = evidence as { envelope?: SignedEnvelope; body?: unknown; requestedTier?: 1 | 2 | 3 };
     if (!e?.envelope || e.body === undefined) {
       throw new IndiaPostNoCustodyKey("india-post holds no key of its own; evidence must be a signed attestation");
     }
     const attester = this.#registry.verify(e.envelope, e.body);
     const requested = e.requestedTier ?? attester.tier;
-    return Math.min(requested, attester.tier) as 1 | 2 | 3;
+    // Internal-to-this-adapter numeric comparison against the attester's own
+    // registry accreditation is fine; what crosses the port boundary is an
+    // opaque label, not the number, so the protocol above never compares
+    // assurance ordinally.
+    return `tier-${Math.min(requested, attester.tier)}`;
   }
 }
 

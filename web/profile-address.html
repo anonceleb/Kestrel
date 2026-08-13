@@ -169,7 +169,7 @@ $("s2").onclick = () => {
   const root = newRootSecret();
   const pid = vault.issuePairwiseId(root, LSP);
   const rec = vault.store({ id: recordId, subjectRef: "subject-privately-known-to-vault",
-    tenantId: "indiapost", payload: address, geoBucket: geoBucketFor(address.digipin), vouchTier: 2 });
+    tenantId: "indiapost", payload: address, geoBucket: geoBucketFor(address.digipin), assurance: "tier-2" });
   vault.bind(pid, recordId);
   window.__pid = pid;
   $("o2").textContent =
@@ -189,7 +189,7 @@ $("s3").onclick = () => {
     scope: ["fulfil"], at: Date.now(), expiresAt: Date.now() + 14 * 86400000 });
   grant = mint(capSecret, { pairwiseId: window.__pid, purpose: "delivery", maxUnits: 1,
     fulfiller: "standard", expiresAt: Date.now() + 14 * 86400000, singleUse: true,
-    consentRef: c.ref, channelKind: "door" });
+    consentRef: c.ref, channelKind: "direct" });
   $("o3").textContent =
 `consent entry (hash-chained ledger): ref=${c.ref} hash=${c.hash.slice(0,24)}…
 
@@ -211,10 +211,10 @@ ${j(claims)}`;
 };
 
 $("s5").onclick = async () => {
-  const { sortationCode } = await vault.resolve(grant, LSP);
+  const { routingCode } = await vault.resolve(grant, LSP);
   const rec = audit.forRecord(recordId)[0];
   $("o5").textContent =
-`sortationCode = ${sortationCode}   ← IND- + hash of full DIGIPIN|service; bucket ${geoBucketFor(address.digipin)}
+`routingCode = ${routingCode}   ← IND- + hash of full DIGIPIN|service; bucket ${geoBucketFor(address.digipin)}
 
 audit record (written before decryption, same call):
 ${j(rec)}`;

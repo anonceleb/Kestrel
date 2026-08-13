@@ -5,14 +5,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { writeFileSync, unlinkSync, mkdirSync, rmSync } from "node:fs";
+import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { Registry, newKeyPair, signRequest, WriteNotAuthorized } from "../../packages/registry/src/signing.ts";
-import { demoOnlyInsecurePolicyStore, DemoPolicyNotAllowed } from "../../packages/policy/src/policy.ts";
+import {
+  demoOnlyInsecurePolicyStore,
+  DemoPolicyNotAllowed,
+  PolicyStore,
+  PolicyStale,
+  signPolicy,
+} from "../../packages/policy/src/policy.ts";
 import { Platform } from "../../services/platform/src/platform.ts";
 import { Vault } from "../../services/vault/src/vault.ts";
 import { newRootSecret, derivePairwiseId, linkabilityScore } from "../../packages/identity/src/pairwise.ts";
+import { verify as verifyCapability, CapabilityInvalid } from "../../packages/capability/src/capability.ts";
 import { harness, grantOnce } from "./harness.ts";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -74,7 +82,7 @@ test("INV-30: the demo-only default policy is loudly gated behind CFP_ALLOW_DEMO
     assert.throws(() => demoOnlyInsecurePolicyStore(), DemoPolicyNotAllowed);
     process.env.CFP_ALLOW_DEMO_POLICY = "1";
     const store = demoOnlyInsecurePolicyStore();
-    assert.equal(store.active().policy.minTierToRelease, 2);
+    assert.deepEqual(store.active().policy.acceptableAssurance, ["tier-2", "tier-3"]);
   } finally {
     if (prev === undefined) delete process.env.CFP_ALLOW_DEMO_POLICY;
     else process.env.CFP_ALLOW_DEMO_POLICY = prev;
@@ -100,15 +108,58 @@ test("INV-31: privacy-lint's log-hygiene scan covers adapters/ and profiles/, no
   // Baseline: the real repo passes.
   execFileSync("node", ["--experimental-strip-types", "tools/privacy-lint/lint.ts"], { cwd: REPO_ROOT });
 
-  // Inject a PII-shaped log call into a scratch adapter directory and prove lint catches it.
-  const scratchDir = join(REPO_ROOT, "adapters", "__lint_probe__", "src");
-  mkdirSync(scratchDir, { recursive: true });
+  // Inject a PII-shaped log call into a scratch directory *outside* the repo and prove lint
+  // catches it via CFP_LINT_EXTRA_LOG_DIR — the probe never touches the tree being linted, so
+  // there is nothing to clean up and nothing that can be left behind by a failed cleanup.
+  const scratchDir = mkdtempSync(join(tmpdir(), "cfp-lint-probe-"));
   const scratchFile = join(scratchDir, "probe.ts");
   writeFileSync(scratchFile, `console.log("customer address: 14 Harbour Lane");\n`);
   try {
-    assert.throws(() => execFileSync("node", ["--experimental-strip-types", "tools/privacy-lint/lint.ts"], { cwd: REPO_ROOT, stdio: "pipe" }));
+    assert.throws(() =>
+      execFileSync("node", ["--experimental-strip-types", "tools/privacy-lint/lint.ts"], {
+        cwd: REPO_ROOT,
+        stdio: "pipe",
+        env: { ...process.env, CFP_LINT_EXTRA_LOG_DIR: scratchDir },
+      }),
+    );
   } finally {
-    rmSync(join(REPO_ROOT, "adapters", "__lint_probe__"), { recursive: true, force: true });
+    rmSync(scratchDir, { recursive: true, force: true });
+  }
+});
+
+test("privacy-lint check 4 catches all four evasions of the old exact-match, newline-terminated rule", () => {
+  const probes: Record<string, string> = {
+    "single-line.ts": `export type Foo = { address: string };\n`,
+    "delivery-address.ts": `export type Foo = {\n  deliveryAddress: string;\n};\n`,
+    "postal-code.ts": `export type Foo = {\n  postalCode: string;\n};\n`,
+    "street-name.ts": `export type Foo = {\n  street_name: string;\n};\n`,
+    "type-name.ts": `export type PostalAddress = {\n  x: number;\n};\n`,
+  };
+  const clean = `export type Clean = {\n  merchantId: string;\n};\n`;
+
+  const scratchDir = mkdtempSync(join(tmpdir(), "cfp-lint-type-probe-"));
+  try {
+    for (const [file, src] of Object.entries(probes)) {
+      writeFileSync(join(scratchDir, file), src);
+      assert.throws(
+        () =>
+          execFileSync("node", ["--experimental-strip-types", "tools/privacy-lint/lint.ts"], {
+            cwd: REPO_ROOT,
+            stdio: "pipe",
+            env: { ...process.env, CFP_LINT_EXTRA_TYPE_DIR: scratchDir },
+          }),
+        `expected ${file} to fail the address-shaped-identifier check`,
+      );
+      rmSync(join(scratchDir, file));
+    }
+    // A clean type in the same scratch dir must still pass — this is not a blanket failure.
+    writeFileSync(join(scratchDir, "clean.ts"), clean);
+    execFileSync("node", ["--experimental-strip-types", "tools/privacy-lint/lint.ts"], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, CFP_LINT_EXTRA_TYPE_DIR: scratchDir },
+    });
+  } finally {
+    rmSync(scratchDir, { recursive: true, force: true });
   }
 });
 
@@ -139,16 +190,61 @@ test("INV-33: the consent ledger is keyed by pairwise reference — Platform can
   assert.notEqual(subjectRefA, subjectRefB);
   assert.equal(linkabilityScore(subjectRefA, subjectRefB), 0);
 
-  const reqA = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "door" as const };
+  const reqA = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const envA = signRequest("counterparty.example", "k1", h.mk.privateKey, reqA);
   const { capability: capA } = h.platform.createGrant(envA, reqA, subjectRefA);
 
-  h.platform.learnProjection(h.pairwiseId, { geoBucket: "BKT-1", vouchTier: 2 });
-  const reqB = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "door" as const };
+  h.platform.learnProjection(h.pairwiseId, { geoBucket: "BKT-1", assurance: "tier-2" });
+  const reqB = { pairwiseId: h.pairwiseId, units: 1, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const envB = signRequest("counterparty-two.example", "k1", mk2.privateKey, reqB);
   const { capability: capB } = h.platform.createGrant(envB, reqB, subjectRefB);
 
   const entryA = h.consent.find(capA.caveats.consentRef)!;
   const entryB = h.consent.find(capB.caveats.consentRef)!;
   assert.notEqual(entryA.subject, entryB.subject, "Platform's own ledger must not see a shared subject value across counterparties");
+});
+
+test("INV-19: the policy hash recorded on a consent entry is byte-identical to the policy that authorized it, and PolicyStore.byHash() replays it after the store moves on — restored, previously dropped without replacement", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const activeHash = h.platform.policy().active().hash;
+  const entry = h.consent.find(capability.caveats.consentRef);
+  assert.equal(entry?.policyHash, activeHash, "createGrant's docstring claims this; nothing previously asserted it");
+
+  // Independently: PolicyStore.byHash() must keep answering "what did the rules say when this
+  // decision was made" after reload() moves the active policy on — not just "what do they say now".
+  const { publicKey, privateKey } = newKeyPair();
+  const v1 = signPolicy(privateKey, "op-signer", { version: 1, acceptableAssurance: ["tier-2"] });
+  const store = new PolicyStore(publicKey, v1);
+  const v2 = signPolicy(privateKey, "op-signer", { version: 2, acceptableAssurance: ["tier-3"] });
+  store.reload(v2);
+  assert.deepEqual(store.byHash(v1.hash)?.policy, v1.policy);
+  assert.equal(store.active().policy.version, 2);
+
+  // reload() refuses to go backwards or sideways — a past decision's policy stays replayable
+  // precisely because the active policy can never be un-advanced to hide what changed.
+  assert.throws(() => store.reload(v1), PolicyStale);
+});
+
+test("INV-23: the capability MAC covers id — a swapped id invalidates the signature — restored, previously dropped without replacement", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const forged = { ...capability, id: "some-other-id" };
+  assert.throws(() => verifyCapability(h.capSecret, forged), CapabilityInvalid);
+  // The unmodified capability still verifies — this is a forgery check, not a blanket break.
+  verifyCapability(h.capSecret, capability);
+});
+
+test("INV-25: the active policy cannot be mutated through the reference active() returns — restored, previously dropped without replacement", () => {
+  const { publicKey, privateKey } = newKeyPair();
+  const v1 = signPolicy(privateKey, "op-signer", { version: 1, acceptableAssurance: ["tier-2"] });
+  const store = new PolicyStore(publicKey, v1);
+  const active = store.active();
+  assert.throws(() => {
+    (active as { policy: unknown }).policy = { version: 99, acceptableAssurance: ["tier-1"] };
+  }, TypeError);
+  assert.throws(() => {
+    (active.policy as { acceptableAssurance: unknown }).acceptableAssurance = ["tier-1"];
+  }, TypeError);
+  assert.deepEqual(store.active().policy.acceptableAssurance, ["tier-2"]);
 });

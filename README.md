@@ -1,13 +1,18 @@
 # CFP — Confidential Fulfilment Profile
 
+Authored and maintained by **Ekumen LLP** (Ashwin Natarajan, Karthik). See
+[`NOTICE`](./NOTICE) for licensing and this project's lineage from an
+earlier, discontinued prototype.
+
 A capability, not a shared secret: a scoped, expiring, single-use, revocable,
 non-widening grant to cause an action against a sensitive attribute — where
 the attribute itself never crosses the network. Address is the first
 attribute profile. Contact/phone is the second. The grant core underneath
 both is generic.
 
-> *"Yes to the primitive. No to the layer. Not yet to the extension."*
-> — the FIDE convergence memo this repo executes
+A generic capability-grant primitive, address as its first attribute
+profile, contact/phone as its second — donated as a protocol contribution,
+not operated as a product.
 
 **Live demo:** [kestrel-ebon.vercel.app](https://kestrel-ebon.vercel.app/index.html)
 
@@ -76,9 +81,10 @@ this repo draws.
 packages/
   crypto/      envelope encryption (ChaCha20-Poly1305), HKDF record keys, crypto-shredding
   identity/    pairwise ID derivation — stable per counterparty, unlinkable across counterparties
-  registry/    Beckn network-registry client: subscriber_id identity, XEd25519/BLAKE-512 signed
-               envelopes, authorized writes — simulates a real Beckn registry's subscribe/lookup
-               wire protocol in-process (see the module docstring for what a live swap requires)
+  registry/    A Beckn-convention signing layer over a stub registry: subscriber_id identity,
+               XEd25519/BLAKE-512 signed envelopes, authorized writes, Beckn's wire format —
+               but a locally-defined role/tier vocabulary and an in-process Map as trust anchor,
+               not a client of any real Beckn network registry (see the module docstring)
   directory/   DeDi-shaped key/revocation/policy directory port — an in-memory demo backend behind
                the DeDiDirectoryPort interface, explicitly NOT a live dedi.global integration
   capability/  scoped, expiring, single-use, attenuable FulfilmentGrant tokens
@@ -100,6 +106,8 @@ profiles/
   address/     the India-Post-shaped ConfidentialPayload — line1/line2/locality/postcode + DIGIPIN
   contact/     phone-number masking — ConfidentialPayload is { e164 }, a call-relay RoutingPort
 tests/
+  README.md         invariant-count reconciliation against the base repository — read this first
+                     if the numbers here and elsewhere don't look like they line up
   grant-core/       mechanism-only invariants — the donated artifact
   profiles/address/ address-profile invariants + three-way adapter interop
   profiles/contact/ proves the contact profile reuses the identical grant core

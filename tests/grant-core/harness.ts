@@ -18,7 +18,7 @@ export type NeutralPayload = { secret: string };
 export class NeutralRouting implements RoutingPort {
   async route(payload: ConfidentialPayload, service: string) {
     const p = payload as NeutralPayload;
-    return { sortationCode: `NTR-${p.secret.length}-${service}` };
+    return { routingCode: `NTR-${p.secret.length}-${service}` };
   }
 }
 
@@ -40,9 +40,9 @@ export function genesisRegistry() {
   return { registry, facKeys, authFor };
 }
 
-export function operatorPolicy(minTierToRelease: 1 | 2 | 3 = 2): PolicyStore {
+export function operatorPolicy(acceptableAssurance: string[] = ["tier-2", "tier-3"]): PolicyStore {
   const { publicKey, privateKey } = newKeyPair();
-  const initial = signPolicy(privateKey, "operator-network-authority", { version: 1, minTierToRelease });
+  const initial = signPolicy(privateKey, "operator-network-authority", { version: 1, acceptableAssurance });
   return new PolicyStore(publicKey, initial);
 }
 
@@ -84,16 +84,16 @@ export function harness() {
     tenantId: "neutral-op",
     payload: { secret: "s3cr3t-payload" } satisfies NeutralPayload,
     geoBucket: "BKT-1",
-    vouchTier: 2,
+    assurance: "tier-2",
   });
   vault.bind(pairwiseId, rec.id);
-  platform.learnProjection(pairwiseId, { geoBucket: rec.geoBucket, vouchTier: 2 });
+  platform.learnProjection(pairwiseId, { geoBucket: rec.geoBucket, assurance: "tier-2" });
 
   return { kms, audit, consent, nonces, capSecret, registry, vault, platform, root, pairwiseId, mk, authFor };
 }
 
 export async function grantOnce(h: ReturnType<typeof harness>) {
-  const req = { pairwiseId: h.pairwiseId, units: 2, fulfiller: "NTR-OP", channelKind: "door" as const };
+  const req = { pairwiseId: h.pairwiseId, units: 2, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const env = signRequest("counterparty.example", "k1", h.mk.privateKey, req);
   return h.platform.createGrant(env, req, "sub_1");
 }

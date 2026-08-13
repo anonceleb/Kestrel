@@ -96,7 +96,7 @@ $("s1").onclick = () => {
 
   const pid = vault.issuePairwiseId(newRootSecret(), MOBILITY);
   vault.store({ id: "rec-ride", subjectRef: "rider", tenantId: "mobility",
-    payload: { e164: "+919812345678" }, geoBucket: "n/a", vouchTier: 2 });
+    payload: { e164: "+919812345678" }, geoBucket: "n/a", assurance: "tier-2" });
   vault.bind(pid, "rec-ride");
   const c = consent.append({ subject: pid, grantedTo: MOBILITY, purpose: "delivery",
     scope: ["connect-call"], at: Date.now(), expiresAt: Date.now() + 3600000 });
@@ -113,11 +113,11 @@ driver app holds:
 };
 
 $("s2").onclick = async () => {
-  const { sortationCode } = await vault.resolve(grant, MOBILITY);
+  const { routingCode } = await vault.resolve(grant, MOBILITY);
   $("out").textContent +=
 `
 
-vault.resolve(grant, "${MOBILITY}") → connection code ${sortationCode}
+vault.resolve(grant, "${MOBILITY}") → connection code ${routingCode}
 (the relay bridged the call server-side; no number crossed the app layer; audit written before decrypt)`;
   $("s2").disabled = true; $("s3").disabled = false;
 };

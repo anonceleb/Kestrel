@@ -68,7 +68,7 @@ the same prominence as closed ones — see <a href="./candid-books.html">candid-
 <section>
   <h2>1. Verify locally</h2>
   <pre>git clone &lt;this repo&gt; &amp;&amp; cd cfp-demo
-npm run verify     <span class="dim"># privacy-lint + 52 invariant tests. Node ≥ 22.6, no dependencies, no network.</span>
+npm run verify     <span class="dim"># privacy-lint + 60 invariant tests. Node ≥ 22.6, no dependencies, no network.</span>
 npm run demo       <span class="dim"># narrated end-to-end grant lifecycle</span>
 npm run build:web  <span class="dim"># regenerates web/assets/js — refuses to emit if the shim diverges from node:crypto</span></pre>
 </section>
@@ -95,7 +95,7 @@ npm run build:web  <span class="dim"># regenerates web/assets/js — refuses to 
     <tr><td><a href="./candid-books.html">candid-books</a></td>
         <td>Five threat-model gaps closed (with the tests that prove it), three still open, and
         the twelve-month stewardship hand-over clause, verbatim.</td></tr>
-    <tr><td><a href="../spec/CFP-v0.x.md">spec/CFP-v0.x.md</a></td>
+    <tr><td><a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec/CFP-v0.x.md</a></td>
         <td>The pilot-scoped interface note. Submitted nowhere.</td></tr>
   </table>
 </section>
@@ -126,7 +126,7 @@ out.push(`derivePairwiseId(root, "operator.example")  = ${pid}`);
 
 const grant = mint(secret, { pairwiseId: pid, purpose: "delivery", maxUnits: 1,
   fulfiller: "standard", expiresAt: Date.now() + 60000, singleUse: true,
-  consentRef: "cns_boot", channelKind: "door" });
+  consentRef: "cns_boot", channelKind: "direct" });
 verify(secret, grant);
 out.push(`mint() → verify()                            <span class="ok">ok</span>  id=${grant.id.slice(0,8)}… mac=${grant.mac.slice(0,16)}…`);
 

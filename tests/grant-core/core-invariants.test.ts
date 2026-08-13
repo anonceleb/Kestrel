@@ -40,7 +40,7 @@ test("INV-3: a spent grant cannot be replayed", async () => {
   const h = harness();
   const { capability } = await grantOnce(h);
   const routed = await h.vault.resolve(capability, "counterparty.example");
-  assert.match(routed.sortationCode, /^NTR-/);
+  assert.match(routed.routingCode, /^NTR-/);
   await assert.rejects(() => h.vault.resolve(capability, "counterparty.example"), CapabilityBurned);
 });
 
@@ -88,7 +88,7 @@ test("INV-8: adapters are removable — core has no adapter dependency", async (
 
 test("INV-9: every inter-participant request is signed and verified (ONDC)", async () => {
   const h = harness();
-  const req = { pairwiseId: h.pairwiseId, units: 2, fulfiller: "NTR-OP", channelKind: "door" as const };
+  const req = { pairwiseId: h.pairwiseId, units: 2, fulfiller: "NTR-OP", channelKind: "direct" as const };
   const env = signRequest("counterparty.example", "k1", h.mk.privateKey, req);
 
   assert.throws(() => h.registry.verify(env, { ...req, units: 900 }), SignatureInvalid);
@@ -110,7 +110,7 @@ test("INV-11: attenuation may narrow a grant but never widen it", () => {
   const cap = mint(secret, {
     pairwiseId: "CFP-AAAA-BBBB-CCCC", purpose: "delivery", maxUnits: 5,
     fulfiller: "NTR-OP", expiresAt: Date.now() + 60_000, singleUse: true,
-    consentRef: "cns_x", channelKind: "door",
+    consentRef: "cns_x", channelKind: "direct",
   });
   const narrower = attenuate(secret, cap, { maxUnits: 2 }, "agent-7");
   assert.equal(narrower.caveats.maxUnits, 2);
@@ -120,9 +120,9 @@ test("INV-11: attenuation may narrow a grant but never widen it", () => {
 
 test("INV-12: co-residents cannot enumerate each other through a shared record (Posten)", () => {
   const rows = [
-    { addressRecordId: "rec_1", subjectRef: "sub_1", barrier: false },
-    { addressRecordId: "rec_1", subjectRef: "sub_2", barrier: false },
-    { addressRecordId: "rec_1", subjectRef: "sub_3", barrier: true },
+    { cohortRecordId: "rec_1", subjectRef: "sub_1", barrier: false },
+    { cohortRecordId: "rec_1", subjectRef: "sub_2", barrier: false },
+    { cohortRecordId: "rec_1", subjectRef: "sub_3", barrier: true },
   ];
   assert.deepEqual(visibleCoResidents(rows, "sub_1", "rec_1"), ["sub_2"]);
   assert.deepEqual(visibleCoResidents(rows, "sub_3", "rec_1"), [], "barriered resident sees nobody");
