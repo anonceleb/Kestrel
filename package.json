@@ -1,6 +1,8 @@
 {
   "name": "cfp-demo",
-  "private": true,
+  "version": "0.1.0",
+  "description": "CFP — a generic capability-grant primitive for confidential fulfilment, with address and contact as attribute profiles.",
+  "license": "Apache-2.0",
   "type": "module",
   "engines": { "node": ">=22.6" },
   "scripts": {
@@ -8,6 +10,7 @@
     "lint:privacy": "node --experimental-strip-types tools/privacy-lint/lint.ts",
     "verify": "npm run lint:privacy && npm run test",
     "demo": "node --experimental-strip-types tools/demo/walkthrough.ts",
-    "build:web": "node --experimental-strip-types tools/web-build/build.ts"
+    "build:web": "node --experimental-strip-types tools/web-build/build.ts",
+    "link-check": "node --experimental-strip-types tools/link-check/check.ts"
   }
 }
