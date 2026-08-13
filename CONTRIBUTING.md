@@ -28,5 +28,7 @@ is no embargo process — file it in the open the same as any other bug.
 
 ## Maintainer
 
-Ekumen LLP — see [NOTICE](./NOTICE). Named here because a repository a foundation is asked to
-help steward needs a name to write to, not an inference to make.
+Ashwin Kumar Natarajan and Karthik Nagasubramanian, operating as Ekumen
+Digital Solutions LLP (incorporation pending) — see [NOTICE](./NOTICE).
+Named here because a repository a foundation is asked to help steward
+needs a name to write to, not an inference to make.

@@ -1,8 +1,9 @@
 # CFP — Confidential Fulfilment Profile
 
-Authored and maintained by **Ekumen LLP**. See [`NOTICE`](./NOTICE) for
-licensing and this project's lineage from an earlier, discontinued
-prototype.
+Authored and maintained by **Ashwin Kumar Natarajan and Karthik Nagasubramanian**
+(operating as Ekumen Digital Solutions LLP, incorporation pending). See
+[`NOTICE`](./NOTICE) for licensing and this project's lineage from an
+earlier, discontinued prototype.
 
 A capability, not a shared secret: a scoped, expiring, single-use, revocable,
 non-widening grant to cause an action against a sensitive attribute — where

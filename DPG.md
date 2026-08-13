@@ -43,10 +43,12 @@ Kestrel uses these open standards and cryptographic building blocks:
 
 ## 4. Ownership (Indicator 3)
 
-Ekumen LLP wrote and maintains this repository — see [`NOTICE`](./NOTICE) for the full
-ownership statement and [`README.md`](./README.md) for maintainer contact. Ekumen doesn't
-hold any special rights beyond the Apache-2.0 license: anyone can use, fork, or redistribute
-the code, spec, and test suite today, whether or not Ekumen stays involved. The spec also
+Ashwin Kumar Natarajan and Karthik Nagasubramanian, operating as Ekumen
+Digital Solutions LLP (incorporation pending), wrote and maintain this
+repository — see [`NOTICE`](./NOTICE) for the full ownership statement and
+[`README.md`](./README.md) for maintainer contact. Neither holds any special
+rights beyond the Apache-2.0 license: anyone can use, fork, or redistribute
+the code, spec, and test suite today, whether or not they stay involved. The spec also
 commits to handing stewardship to a named neutral body within 12 months of the v0.1 release
 (`spec/CFP-v0.x.md` §8).
 
