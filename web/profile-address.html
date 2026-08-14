@@ -121,8 +121,13 @@ import { AuditLog, ConsentLedger } from "./assets/js/packages/core/src/core.js";
 import { mint, NonceLedger } from "./assets/js/packages/capability/src/capability.js";
 import { newRootSecret } from "./assets/js/packages/identity/src/pairwise.js";
 import { IndiaPostRouting, geoBucketFor } from "./assets/js/adapters/india-post/src/adapter.js";
+import { FlatDensity } from "./assets/js/profiles/address/src/precision.js";
 import { verifyLabelOffline } from "./assets/js/packages/labels/src/label.js";
 import { randomBytes } from "./assets/js/node-crypto.js";
+
+// ~200 people/km2 — a middling Indian district. The bucket precision below is
+// derived from this against the core k-floor, not hard-coded: see spec 6a.
+const DENSITY = new FlatDensity(200);
 
 const $ = (id) => document.getElementById(id);
 const j = (v) => JSON.stringify(v, null, 2);
@@ -157,7 +162,7 @@ $("s2").onclick = () => {
   const root = newRootSecret();
   const pid = vault.issuePairwiseId(root, LSP);
   const rec = vault.store({ id: recordId, subjectRef: "subject-privately-known-to-vault",
-    tenantId: "indiapost", payload: address, geoBucket: geoBucketFor(address.digipin), assurance: "tier-2" });
+    tenantId: "indiapost", payload: address, geoBucket: geoBucketFor(address.digipin, DENSITY), assurance: "tier-2" });
   vault.bind(pid, recordId);
   window.__pid = pid;
   $("o2").textContent =
@@ -202,7 +207,8 @@ $("s5").onclick = async () => {
   const { routingCode } = await vault.resolve(grant, LSP);
   const rec = audit.forRecord(recordId)[0];
   $("o5").textContent =
-`routingCode = ${routingCode}   ← IND- + hash of full DIGIPIN|service; bucket ${geoBucketFor(address.digipin)}
+`routingCode = ${routingCode}   ← IND- + hash of full DIGIPIN|service; bucket ${geoBucketFor(address.digipin, DENSITY)}
+   ← ${geoBucketFor(address.digipin, DENSITY).replace("IND-","").length} of 10 DIGIPIN chars: the finest cell still holding k=25 at 200 people/km²
 
 audit record (written before decryption, same call):
 ${j(rec)}`;

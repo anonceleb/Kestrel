@@ -153,14 +153,26 @@ If outage-driven failures eat the savings, the design moves to asynchronous pre-
 <p>The vault's key-management (<code>Kms</code>) is single-custodian — no m-of-n split. Named as an
 open question in <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>, not attempted in this codebase.</p>
 
-<h3>The DIGIPIN precision floor is a constant, not a k-anonymity rule <span class="st open">— open</span></h3>
-<p>The address adapter truncates DIGIPIN to a fixed 6 characters (a ~0.90 km² cell) with no
-justification tied to population density anywhere in this codebase. The core does enforce a real,
-tested <code>K_ANON_FLOOR = 25</code> — but it is wired to brand-cohort visibility, never to
-geography. Against the repository's own asserted k≥50, a 6-character cell fails below roughly 55
-people/km²; against the core's enforced k=25, it fails below roughly 28 people/km². Both thresholds
-sit above large parts of rural India. The fix is an adaptive rung — shortest DIGIPIN prefix meeting
-a k-anonymity floor over bound subjects, not a constant — not yet built.</p>
+<h3>The DIGIPIN precision floor is now derived from the k-floor <span class="st">— closed, with its density source still open</span></h3>
+<p>This item was open until the precision ladder landed, and the concession it forced is worth
+keeping in view. The address adapter used to truncate DIGIPIN to a fixed 6 characters (a ~0.90 km²
+cell) with a docstring asserting it was "coarse enough to guarantee k-anonymity." Nothing computed
+that. Against the core's enforced <code>K_ANON_FLOOR = 25</code>, a 6-character cell needs ~28
+people/km² to hold; against the k≥50 this project's own materials previously asserted, ~56. Large
+parts of rural India sit below both — so the constant under-protected exactly the populations
+DIGIPIN exists to serve.</p>
+<p>The constant is gone. <code>geoBucketFor</code> now emits the finest rung whose cell still holds
+<code>K_ANON_FLOOR</code> people at the deployment's density, so the truncation length is a computed
+consequence of the one k-floor in the codebase rather than a claim floating free of it. Where
+density is thin the cell widens; where no rung reaches the floor, the call refuses instead of
+emitting an under-protected bucket. INV-36 asserts this across a density sweep from sparse rural to
+metro core, and a further test checks the ladder reproduces DoP's published ~4×4 m cell at full
+precision. See <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §6a</a>
+for the published ladder and both crossover figures.</p>
+<p><strong>What stays open:</strong> density arrives through a pluggable port, and the only
+implementation shipped here is a flat value — a deployment using it in production would be asserting
+that India has uniform population density. Wiring real census or operator data, and deciding whose
+figure is authoritative, is unsettled.</p>
 
 <h3>Gap #5's convention is not yet a construction <span class="st open">— open</span></h3>
 <p>See item 5 above: <code>Platform.createGrant</code> accepts any string as <code>subjectRef</code>

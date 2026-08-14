@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T15:43:28.853Z",
+  "generatedAt": "2026-08-14T12:39:23.796Z",
   "selftestChecks": 63,
   "note": "Each emitted module is the named repo source with types stripped and import specifiers rewritten. node-crypto.js is the browser shim, verified against node:crypto by tools/web-build/build.ts before emit.",
   "files": [
@@ -11,7 +11,7 @@
     {
       "source": "packages/core/src/core.ts",
       "emitted": "web/assets/js/packages/core/src/core.js",
-      "sourceSha256": "ad2e782eb738a1c29e06bb085d2bc79236400bf115592413608b5261db4e2e76"
+      "sourceSha256": "e0ad86adaaf0975ed973ed8997673474e182d45b313863360a22be612b122ae5"
     },
     {
       "source": "packages/crypto/src/envelope.ts",
@@ -89,6 +89,11 @@
       "sourceSha256": "e138b024b220591d9749c26577913785263aa81b3a11e5c6fcad6969cc2435a7"
     },
     {
+      "source": "profiles/address/src/precision.ts",
+      "emitted": "web/assets/js/profiles/address/src/precision.js",
+      "sourceSha256": "a4fd4f8a3afab354c3befaf984e26972488faf9616f54208acb14b581e84e8a3"
+    },
+    {
       "source": "profiles/contact/src/contact.ts",
       "emitted": "web/assets/js/profiles/contact/src/contact.js",
       "sourceSha256": "ae6e78f07a1830fef8fa9f1b79aca392e50ed76c28e78809224623e367488d75"
@@ -101,7 +106,7 @@
     {
       "source": "adapters/india-post/src/adapter.ts",
       "emitted": "web/assets/js/adapters/india-post/src/adapter.js",
-      "sourceSha256": "e105d528f716eec6eb55b5f69c062adb19da43c83e394cca25d129a21540c0a0"
+      "sourceSha256": "22c8eb1378da929d0afd9e7664ed7efa03bee4ee836db207193ce85e9b50d3df"
     },
     {
       "source": "adapters/postal-meridia/src/adapter.ts",

@@ -228,3 +228,106 @@ export const K_ANON_FLOOR = 25;
 export function cohortSize(matching: number): number {
   return matching >= K_ANON_FLOOR ? matching : 0;
 }
+
+/* ------------------------------------------------------ precision ladder */
+
+/**
+ * Geographic precision as a monotone ordered dimension.
+ *
+ * Before this existed, the address profile truncated its grid code to a
+ * hard-coded constant and a docstring asserted the result was "coarse
+ * enough to guarantee k-anonymity." Nothing computed that, and nothing
+ * connected it to `K_ANON_FLOOR` above — the floor was real but wired only
+ * to brand-cohort visibility, never to geography. This section is the
+ * missing connection, and `K_ANON_FLOOR` is now the single source for both.
+ *
+ * Deliberately free of any grid vocabulary: a rung is a character count and
+ * a ground area. Which grid, and what a cell measures, belongs to the
+ * attribute profile (see `profiles/address/src/precision.ts` for the
+ * DIGIPIN ladder). The core knows only that precision is ordered.
+ */
+
+/** One rung: how many characters of a code are disclosed, and the ground area one cell covers. */
+export type PrecisionRung = { chars: number; cellKm2: number };
+
+/**
+ * Ordered coarsest-first. The ordering is the point: `chars` strictly
+ * increases and `cellKm2` strictly decreases, so cohort size is monotone
+ * non-increasing along the ladder. That monotonicity is what lets
+ * `rungMeetingFloor` stop at the first failure instead of scanning on.
+ */
+export type PrecisionLadder = readonly PrecisionRung[];
+
+/**
+ * Where cohort estimates come from. Pluggable on purpose: a real deployment
+ * supplies census or operator data; the demo supplies a flat value. The core
+ * has no opinion, which is what keeps this honest — the k-floor is enforced
+ * against whatever number the deployment can actually defend.
+ */
+export type DensityPort = { peoplePerKm2(code: string): number };
+
+/** Thrown when even the coarsest rung on the ladder cannot reach the k-floor. */
+export class PrecisionFloorUnsatisfiable extends Error {}
+/** Thrown when a ladder is not strictly ordered — a programming error, caught at the boundary. */
+export class PrecisionLadderNotMonotone extends Error {}
+
+/** Expected number of people sharing one cell at this rung. */
+export function cohortAtRung(rung: PrecisionRung, peoplePerKm2: number): number {
+  return rung.cellKm2 * peoplePerKm2;
+}
+
+/** Fails loudly if a ladder is not coarsest-first and strictly ordered on both axes. */
+export function assertMonotoneLadder(ladder: PrecisionLadder): void {
+  for (let i = 1; i < ladder.length; i++) {
+    const prev = ladder[i - 1]!;
+    const cur = ladder[i]!;
+    if (cur.chars <= prev.chars || cur.cellKm2 >= prev.cellKm2) {
+      throw new PrecisionLadderNotMonotone(
+        `rung ${i} (${cur.chars} chars, ${cur.cellKm2} km2) does not strictly refine rung ${i - 1}`,
+      );
+    }
+  }
+}
+
+/**
+ * The most precision the k-floor permits — the finest rung whose cell still
+ * holds at least `k` people.
+ *
+ * A note on direction, because the obvious reading is backwards. A *shorter*
+ * prefix means a *larger* cell and therefore *more* people, so short
+ * prefixes satisfy a k-floor trivially; the one-character prefix always
+ * passes and is useless for routing. The k-floor is therefore an **upper
+ * bound on precision**, not a lower one, and the useful answer is the
+ * longest prefix still under that bound.
+ *
+ * The lower bound is operational — a carrier needs some minimum precision to
+ * choose a sorting bin — and it belongs to the operator, not here. When a
+ * deployment supplies one, the two bounds define a window, and a window that
+ * closes (routing needs more precision than the floor permits) is a real
+ * conflict that must surface rather than resolve silently in either
+ * direction. `minChars` is how a caller declares that lower bound.
+ */
+export function rungMeetingFloor(
+  ladder: PrecisionLadder,
+  peoplePerKm2: number,
+  k: number = K_ANON_FLOOR,
+  minChars = 0,
+): PrecisionRung {
+  assertMonotoneLadder(ladder);
+  let best: PrecisionRung | undefined;
+  for (const rung of ladder) {
+    if (cohortAtRung(rung, peoplePerKm2) < k) break; // monotone: no finer rung can pass either
+    best = rung;
+  }
+  if (!best) {
+    throw new PrecisionFloorUnsatisfiable(
+      `no rung reaches k=${k} at ${peoplePerKm2} people/km2; the coarsest cell is too sparse`,
+    );
+  }
+  if (best.chars < minChars) {
+    throw new PrecisionFloorUnsatisfiable(
+      `routing needs ${minChars} characters but k=${k} at ${peoplePerKm2} people/km2 permits only ${best.chars}`,
+    );
+  }
+  return best;
+}

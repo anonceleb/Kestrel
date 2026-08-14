@@ -124,6 +124,79 @@ actor besides Vault that sees every consent entry — cannot correlate a
 subject across counterparties by comparing `subject` values, because there
 is nothing shared to compare (INV-33).
 
+## 6a. Geographic precision and the k-floor
+
+Coarse geography is disclosed to counterparties as a `geoBucket`. How coarse
+is **derived, not chosen**: the emitted bucket is the finest rung of a
+precision ladder whose cell still holds at least `K_ANON_FLOOR` people at
+the density the deployment can defend (`rungMeetingFloor` in
+`packages/core`, `DIGIPIN_LADDER` in `profiles/address`).
+
+**Direction matters, and the obvious reading is backwards.** A shorter
+prefix means a larger cell and therefore more people, so short prefixes
+satisfy a k-floor trivially. The k-floor is an **upper bound on precision**,
+not a lower one, and the useful answer is the longest prefix still under it.
+The lower bound is operational — a carrier needs some minimum precision to
+choose a sorting bin — and belongs to the operator. When both are supplied
+and the window closes, that is a real conflict and it raises
+`PrecisionFloorUnsatisfiable` rather than silently resolving in either
+direction.
+
+### 6a.1 The DIGIPIN ladder
+
+Geometry and its provenance: India Post's grid covers a 36° × 36° box
+(latitude 2.5–38.5°N, longitude 63.5–99.5°E), each character subdivides the
+cell 4×4, and the code is 10 characters. Cell side is therefore
+36 / 4ⁿ degrees. At 10 characters that yields ~3.8 m, which agrees with
+DoP's published "~4×4 m" figure — the agreement is the check that this
+geometry is correct, and it is asserted by a test.
+
+Areas are computed at **20°N**, stated rather than buried because it moves
+the answer: longitude foreshortens with latitude, so the same rung is
+about 6% larger in area at Kanyakumari than at Delhi.
+
+| Characters | Cell (at 20°N) | Area km² | Density for k=25 | Density for k=50 |
+| ---: | --- | ---: | ---: | ---: |
+| 4 | 15.7 km × 14.7 km | 230.2806 | 0.109 | 0.217 |
+| 5 | 3.9 km × 3.7 km | 14.3925 | 2 | 3 |
+| 6 | 978 m × 919 m | 0.8995 | 28 | 56 |
+| 7 | 245 m × 230 m | 0.0562 | 445 | 889 |
+| 8 | 61 m × 57 m | 0.0035 | 7.11e+3 | 1.42e+4 |
+| 9 | 15 m × 14 m | 2.20e-4 | 1.14e+5 | 2.28e+5 |
+| 10 | 4 m × 4 m | 1.37e-5 | 1.82e+6 | 3.64e+6 |
+
+The last two columns are people per km² required for a cell at that rung to
+hold k people.
+
+### 6a.2 The concession this table forces, stated with the arithmetic attached
+
+Earlier revisions of this implementation truncated DIGIPIN to a fixed 6
+characters and described the result as "coarse enough to guarantee
+k-anonymity." **Nothing computed that**, and the constant was not merely
+underived — it was wrong wherever density was thin. Read the table: a
+6-character cell needs ~28 people/km² to hold k=25, and ~56 to hold k=50.
+Large parts of rural India sit below both. A fixed 6 therefore
+under-protected exactly the populations that DIGIPIN exists to serve, which
+is the opposite of the intended trade.
+
+Two figures, both derived above, neither hidden: **~28 people/km² against
+the enforced k=25, ~56 against the k≥50 this project's own materials
+previously asserted.** Conceding the inversion with the arithmetic attached
+is worth more than any claim the constant supported.
+
+The ladder replaces the constant. Where density is thin the emitted cell
+widens; where no rung can reach the floor, the call refuses. Both behaviours
+are asserted by INV-36 across a density sweep from sparse rural to metro
+core, rather than at one convenient point — the whole failure mode of a
+constant being that it holds somewhere and not elsewhere.
+
+**Still open:** density is supplied through a `DensityPort`, and the only
+implementation shipped here is a flat value. A deployment that used it in
+production would be asserting that India has uniform population density. The
+port exists so that census or operator data can be supplied without touching
+the k-floor logic; wiring real data, and deciding whose density figure is
+authoritative, is a deployment question this specification does not settle.
+
 ## 7. Multi-operator handoff and federation
 
 Two distinct claims live under this heading, and bundling them reproduces
@@ -169,6 +242,51 @@ federated deployment needs, not yet built:
   accredited service providers without re-proving identity from zero, the
   same portability commitment payment tokenization made structural.
   Committed here as a v0.1 design constraint; not yet implemented.
+
+### 7.3 Erasure: why `Vault.erase()` is an authorization gate and not only a log
+
+`Vault.erase()` requires a facilitator-signed credential, verified against
+the same `Registry` that gates `Registry.register()` and `suspend()`. Two
+designs were available and the choice was previously left unstated, which
+is a poor thing to leave to a DPDP reader's inference. Resolving it here.
+
+**The tension.** Erasure is a data-principal *right*. Putting a gatekeeper
+in front of a right is exactly the shape a regulator should be suspicious
+of: a facilitator that declines to countersign has, in effect, denied the
+right. The alternative design — let any caller erase, and make the erasure
+itself accountable through an append-only log — has no such veto.
+
+**The decision: keep the authorization gate.** The reasoning is that
+`erase()` is not the subject's request channel. It is the operator-side
+*execution* of an erasure decision that arrived out of band, and it is
+irreversible in the strongest available sense: destroying the shred salt
+renders every derived ciphertext permanently unreadable, backups included.
+An unauthenticated irreversible operation on a multi-tenant vault is a
+denial-of-service primitive and an evidence-destruction primitive before it
+is a privacy feature — anyone able to name a `subjectRef` could destroy
+another party's records, and there is no undo to fall back on. The
+countersignature is what makes the destruction attributable to a named
+network actor after the fact.
+
+**What the gate must therefore not become.** Because the objection above is
+correct as far as it goes, the gate is only defensible with the following
+constraints, which a conforming deployment MUST implement and which this
+implementation does **not** yet enforce:
+
+1. A facilitator MUST countersign a verified data-principal erasure request
+   within a bounded window defined by network policy, and that window MUST
+   be no longer than the statutory response period the deployment is subject
+   to.
+2. A refusal MUST be recorded with a reason, in the same accountability
+   store as the erasure itself. A silent non-response is not a refusal and
+   MUST NOT be available as a behaviour.
+3. The countersigning role MUST NOT be held by any party with an interest in
+   the records surviving — in particular, not by the counterparty whose
+   fulfilment produced them.
+
+Stated plainly: this is an authorization gate *and* an accountability log,
+not one instead of the other, and items 1–3 are specification-level
+commitments that the current code does not check. They are listed in §9.
 
 ## 7a. Registry & directory — subscriber identity and the DeDi-shaped interface
 
@@ -275,6 +393,15 @@ list is worth more than a long defensive one:
   one.
 - **Threshold-split vault keys.** Single-custodian `Kms`, no m-of-n split.
   Named as an open question, not attempted.
+- **The erasure gate's counter-constraints.** §7.3 resolves `Vault.erase()`
+  as an authorization gate, but the three constraints that make that
+  defensible — a bounded countersigning window, recorded refusals, and a
+  countersigner with no interest in the records surviving — are
+  specification commitments only. None is enforced in code.
+- **Density provenance for the precision ladder.** §6a derives bucket
+  precision from a `DensityPort`, and the only implementation shipped is a
+  flat value. Whose density figure is authoritative, and at what
+  granularity, is unsettled.
 
 ## 10. Two closed gaps' worth of detail (for the remaining three, see §6 above)
 

@@ -117,6 +117,7 @@ import { AuditLog, ConsentLedger, cohortSize, K_ANON_FLOOR } from "./assets/js/p
 import { mint, attenuate, verify, NonceLedger } from "./assets/js/packages/capability/src/capability.js";
 import { newRootSecret, derivePairwiseId, linkabilityScore } from "./assets/js/packages/identity/src/pairwise.js";
 import { IndiaPostRouting, geoBucketFor } from "./assets/js/adapters/india-post/src/adapter.js";
+import { FlatDensity } from "./assets/js/profiles/address/src/precision.js";
 import { randomBytes } from "./assets/js/node-crypto.js";
 
 const FAC = "facilitator.cfp.example", LSP = "lsp.indiapost.example";
@@ -135,7 +136,7 @@ const root = newRootSecret();
 const pid = vault.issuePairwiseId(root, LSP);
 vault.store({ id: "rec-a", subjectRef: "subj-a", tenantId: "indiapost",
   payload: { line1: "14 Harbour Lane", locality: "Calder", postcode: "482001", digipin: "39J49L8T4C" },
-  geoBucket: geoBucketFor("39J49L8T4C"), assurance: "tier-2" });
+  geoBucket: geoBucketFor("39J49L8T4C", new FlatDensity(200)), assurance: "tier-2" });
 vault.bind(pid, "rec-a");
 const c = consent.append({ subject: pid, grantedTo: LSP, purpose: "delivery",
   scope: ["fulfil"], at: Date.now(), expiresAt: Date.now() + 86400000 });

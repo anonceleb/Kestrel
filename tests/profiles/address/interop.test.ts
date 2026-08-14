@@ -18,6 +18,10 @@ import type { AddressPayload } from "../../../profiles/address/src/address.ts";
 import { MeridiaSortation, geoBucketFor as meridiaGeoBucketFor } from "../../../adapters/postal-meridia/src/adapter.ts";
 import { DakhilSortation, DakhilIdentity, NoCustodyKey, geoBucketFor as dakhilGeoBucketFor } from "../../../adapters/dakhil-post/src/adapter.ts";
 import { IndiaPostRouting, IndiaPostIdentity, IndiaPostNoCustodyKey, geoBucketFor as indiaGeoBucketFor } from "../../../adapters/india-post/src/adapter.ts";
+import { FlatDensity } from "../../../profiles/address/src/precision.ts";
+
+/** ~200 people/km2 — a middling Indian district, chosen so the derived prefix is 6 characters. */
+const DISTRICT_DENSITY = new FlatDensity(200);
 import { operatorPolicy } from "./harness.ts";
 
 function opHarness(routing: { route(p: unknown, s: string): Promise<{ routingCode: string }> }) {
@@ -50,9 +54,12 @@ test("interop: core builds unmodified against india-post's DIGIPIN routing", asy
   const address: AddressPayload = { line1: "Plot 7", locality: "Sector 12", postcode: "110001", digipin: "39J438TJC7" };
   const rec = h.vault.store({
     id: "rec_ind_1", subjectRef: "sub_ind_1", tenantId: "india-post",
-    payload: address, geoBucket: indiaGeoBucketFor(address.digipin!), assurance: "tier-2",
+    payload: address, geoBucket: indiaGeoBucketFor(address.digipin!, DISTRICT_DENSITY), assurance: "tier-2",
   });
   const projection = h.vault.publicProjection(rec.id);
+  // 6 characters is what 200 people/km2 buys at k=25, not a constant: the
+  // 6-char cell is ~0.90 km2, holding ~180 people, while the 7-char cell
+  // (~0.056 km2) would hold ~11 and fall under the floor.
   assert.equal(projection?.geoBucket, "IND-39J438");
 });
 
@@ -75,7 +82,7 @@ test("interop: no sortation-code or geo-bucket collisions across all three opera
   const buckets = new Set([
     meridiaGeoBucketFor("4820"),
     dakhilGeoBucketFor(address),
-    indiaGeoBucketFor(address.digipin!),
+    indiaGeoBucketFor(address.digipin!, DISTRICT_DENSITY),
   ]);
   assert.equal(buckets.size, 3, "no two operators may ever emit the same geo bucket");
 });
