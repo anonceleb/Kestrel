@@ -46,9 +46,20 @@ These are documented open problems, not undiscovered bugs. They are listed in
 - **Single-custodian vault keys.** `Kms` has no m-of-n split, and the root key is in-process.
 - **Root-secret compromise linearises pairwise IDs.** One secret, no per-tenant root, no
   rotation story.
-- **Caveats are not enforced at redemption.** `Vault.resolve` does not check `maxUnits`,
-  `channelKind` or `fulfiller`, a suspended participant can still redeem, and `singleUse:
-  false` is burned anyway.
+- **`maxUnits` and `channelKind` are not enforced at redemption.** `Vault.resolve` never
+  checks either against the actual fulfilment. Enforcing them means `resolve()` accepting the
+  redeemer's declared intent (units consumed, channel used) as a new parameter — an interface
+  change across `Vault` and every `RoutingPort` adapter — and is open pending that decision.
+  Two related items were narrower bugs and are now fixed: a suspended participant could still
+  redeem (`lookup()` didn't check `status`, though `Registry.verify()` already did), and
+  `singleUse: false` was burned anyway, making the flag decorative. Both are pinned by tests.
+- **The redeeming actor is bound to the consent entry, not to `caveats.fulfiller`.** Today
+  `resolve()`'s `actor` must be the consented counterparty (`consent.grantedTo`); the grant's
+  own `fulfiller` field is never checked against it. Whether a network should bind redemption
+  to the fulfiller instead — or require both — is unresolved and interacts with the
+  attenuation/delegation limit above: making `fulfiller` authoritative could let a carrier
+  redeem directly rather than needing its own consent event, which is a real design trade-off,
+  not a bug.
 - **In-memory state everywhere.** Registry, directory, nonce ledger and usage meter are
   in-process maps; single-use across more than one node is unsolved here.
 - **The erasure gate's counter-constraints are specification-only** (`spec/CFP-v0.x.md` §7.3).

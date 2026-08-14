@@ -10,9 +10,10 @@ import {
   ReattemptsExhausted,
   attenuate,
   verify,
+  mint,
 } from "../../packages/capability/src/capability.ts";
 import { NotAuthorized } from "../../services/platform/src/platform.ts";
-import { newKeyPair, registerOp } from "../../packages/registry/src/signing.ts";
+import { newKeyPair, registerOp, suspendOp, ParticipantSuspended } from "../../packages/registry/src/signing.ts";
 import { randomUUID } from "node:crypto";
 import { harness, grantOnce } from "./harness.ts";
 
@@ -298,4 +299,37 @@ test("INV-37: a rejected redemption never burns the grant — no participant can
   // authorize-before-burn fix, the first rejection consumed it.
   const ok = await h.vault.resolve(capability, "counterparty.example");
   assert.match(ok.routingCode, /./);
+});
+
+/* --------------------------------------------------------- P0-5a / P0-5c */
+
+test("P0-5a: a suspended participant cannot redeem, even holding a valid grant", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  h.registry.suspend("counterparty.example", h.authFor(suspendOp("counterparty.example")));
+  assert.equal(h.registry.lookup("counterparty.example").status, "suspended");
+  const err = await h.vault.resolve(capability, "counterparty.example").catch((e) => e);
+  assert.ok(err instanceof ParticipantSuspended, `expected ParticipantSuspended, got ${err?.constructor?.name}`);
+});
+
+test("P0-5c: singleUse:false is honoured — the grant is redeemable more than once", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const reusable = mint(h.capSecret, { ...capability.caveats, singleUse: false });
+  h.vault.bind(reusable.caveats.pairwiseId, "rec_1");
+  const first = await h.vault.resolve(reusable, "counterparty.example");
+  const second = await h.vault.resolve(reusable, "counterparty.example");
+  assert.match(first.routingCode, /./);
+  assert.match(second.routingCode, /./);
+});
+
+test("P0-5c: a singleUse:false grant is still killed by consent revocation, not left unbounded forever", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const reusable = mint(h.capSecret, { ...capability.caveats, singleUse: false });
+  h.vault.bind(reusable.caveats.pairwiseId, "rec_1");
+  await h.vault.resolve(reusable, "counterparty.example");
+  h.platform.revoke(capability.id, "sub_1"); // revokes the shared consentRef
+  const err = await h.vault.resolve(reusable, "counterparty.example").catch((e) => e);
+  assert.ok(err instanceof CapabilityBurned, `expected CapabilityBurned, got ${err?.constructor?.name}`);
 });

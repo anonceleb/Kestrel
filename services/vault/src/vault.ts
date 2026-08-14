@@ -48,6 +48,7 @@ import { derivePairwiseId, type RootSecret } from "../../../packages/identity/sr
 import {
   Registry,
   WriteNotAuthorized,
+  ParticipantSuspended,
   assertAuthorizesOperation,
   eraseOp,
   type WriteAuth,
@@ -155,7 +156,18 @@ export class Vault {
    */
   async resolve(cap: Capability, actor: string): Promise<{ routingCode: string }> {
     verifyCap(this.#capSecret, cap);
-    this.#registry.lookup(actor); // actor must be a known registry participant
+    /**
+     * [Gap fix — P0-5a] `lookup()` finds the participant but does not check
+     * `status`. Spec §3 step 2 says "known, *active* registry participant";
+     * the code previously enforced only "known," so a suspended participant
+     * — one a facilitator had deliberately cut off — could still redeem.
+     * `status` is checked here rather than switched to `registry.verify()`,
+     * because verify() also demands a signed envelope, which resolve()'s
+     * actor argument has never carried; that's the fulfiller-binding
+     * question in spec §9 and is not conflated with this fix.
+     */
+    const participant = this.#registry.lookup(actor);
+    if (participant.status !== "active") throw new ParticipantSuspended(actor);
 
     /**
      * Authorize BEFORE burning. The previous order — burn, then check
@@ -184,7 +196,15 @@ export class Vault {
       throw new CapabilityBurned(cap.id);
     }
 
-    this.#nonces.burn(cap.id); // replay dies here — CapabilityBurned
+    /**
+     * [Gap fix — P0-5c] Previously unconditional, which meant `singleUse:
+     * false` was decorative: `burn()` recorded the id regardless, so a
+     * caveat promising re-redemption silently became single-use anyway. No
+     * caller mints `singleUse: false` today — every `mint()` call site
+     * passes `true` — so this changes no shipped behaviour; it makes the
+     * caveat's own meaning hold if a caller ever does.
+     */
+    if (cap.caveats.singleUse) this.#nonces.burn(cap.id); // replay dies here — CapabilityBurned
 
     const recordId = this.#bindings.get(cap.caveats.pairwiseId);
     if (!recordId) throw new Error("no binding for pairwiseId");

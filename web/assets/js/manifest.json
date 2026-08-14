@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T17:39:25.977Z",
+  "generatedAt": "2026-08-14T17:45:26.753Z",
   "selftestChecks": 63,
   "note": "Each emitted module is the named repo source with types stripped and import specifiers rewritten. node-crypto.js is the browser shim, verified against node:crypto by tools/web-build/build.ts before emit.",
   "files": [
@@ -81,7 +81,7 @@
     {
       "source": "services/vault/src/vault.ts",
       "emitted": "web/assets/js/services/vault/src/vault.js",
-      "sourceSha256": "a9f464dedb34d9d33a4712902d1400b3d1fac41fc3c0c8067a84eec9bfac145f"
+      "sourceSha256": "01ffe5b801415efd16222ca2b7c9091a9bf2d74ddb9e75cba39a268d6b9f5baa"
     },
     {
       "source": "profiles/address/src/address.ts",

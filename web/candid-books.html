@@ -150,6 +150,21 @@ solved here.</p>
 mTLS-bound carrier identity is the spec's named answer to the gap above — not attempted in this
 codebase.</p>
 
+<h3><code>resolve()</code> checks the token, not the fulfilment <span class="st open">— open</span></h3>
+<p>Two related gaps, both real and both left open on purpose rather than fixed unilaterally.
+<code>Vault.resolve()</code> verifies the grant's signature and the redeemer's standing, but
+never compares <code>maxUnits</code> or <code>channelKind</code> to what the redeemer actually
+does — closing that means <code>resolve()</code> accepting the redeemer's declared intent as a
+new parameter, an interface change across every <code>RoutingPort</code> adapter. Separately,
+the redeeming actor is bound to <code>consent.grantedTo</code> — typically the merchant — and
+never checked against the grant's own <code>caveats.fulfiller</code>; whether a network should
+additionally require they match, letting a named carrier redeem directly, is a trust-model
+decision that interacts with the delegation gap above, not a default to assume. Two adjacent,
+narrower bugs found in the same review are already fixed: a <b>suspended</b> participant could
+redeem despite an active facilitator having cut them off, and <code>singleUse: false</code> was
+burned on first use anyway, making the caveat decorative. See
+<a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>.</p>
+
 <h3>Depot-time resolution as a synchronous dependency <span class="st open">— open</span></h3>
 <p>Resolution is a once-per-parcel online event. In a deep-rural network the "depot" can be a
 low-connectivity branch office — whether the address-driven savings survive that reality is an

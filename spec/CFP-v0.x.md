@@ -52,14 +52,20 @@ Redemption (`Vault.resolve(grant, actor)`) is the single audited exit from
 Zone 1:
 
 1. Verify the grant's MAC and expiry.
-2. Verify `actor` is a known, active registry participant.
+2. Verify `actor` is a known, active registry participant. **Status is checked, not just
+   existence**: a suspended participant is refused (`ParticipantSuspended`) even holding an
+   otherwise-valid grant — an earlier revision checked only that `actor` was known, which let a
+   facilitator-suspended participant keep redeeming (see §9, "P0-5a").
 3. Check the referenced consent entry is valid for this purpose and this
    actor, and not revoked. **This precedes the burn deliberately**: an
    earlier revision burned first, which let any registered participant
    holding a valid grant destroy it by attempting redemption, denying the
    consented counterparty (see §9, INV-37).
-4. Burn the grant's nonce (single-use enforcement) — a second `resolve()`
-   call with the same grant throws `CapabilityBurned`. The burn is the
+4. If `caveats.singleUse`, burn the grant's nonce — a second `resolve()`
+   call with the same grant throws `CapabilityBurned`. A `singleUse: false`
+   grant skips the burn and remains redeemable until expiry or consent
+   revocation; an earlier revision burned unconditionally, so the flag was
+   decorative (see §9, "P0-5c"). The burn, when it happens, is the
    linearization point immediately before decryption, so a real deployment
    makes it an atomic compare-and-set and proceeds only if it wins.
 5. **Write the audit record — actor, purpose, consent reference, record id —
@@ -402,6 +408,19 @@ list is worth more than a long defensive one:
 - **Carrier-identity binding.** No binding exists between a `FulfilmentGrant`
   and the specific carrier/relay identity redeeming it (an mTLS-bound
   identity would close the gap above). Not attempted here.
+- **`resolve()` does not check `maxUnits` or `channelKind` against the actual fulfilment
+  ("P0-5b").** It verifies the token and the actor's standing, but nothing compares the
+  redeemer's declared intent — how many units, over which channel — to what the caveats
+  authorise. Closing this means `resolve()` accepting that intent as a new parameter, which
+  changes the `RoutingPort` interface every adapter implements; that is an interface decision,
+  not a bug fix, and is deliberately left open rather than made unilaterally.
+- **The redeeming actor is bound to `consent.grantedTo`, never to `caveats.fulfiller`
+  ("P0-5b").** A grant names a `fulfiller`, but redemption authorises whoever the subject
+  consented to (typically the merchant), and the two are never compared. Whether a network
+  should additionally require `actor === caveats.fulfiller` — letting a named carrier redeem
+  directly — or keep them independent is unresolved, and it interacts directly with the
+  forward-leg-delegation item above: making `fulfiller` authoritative is one way to close that
+  gap, but it is a trust-model choice, not a default to assume.
 - **Depot-time resolution as a synchronous dependency.** Resolution is a
   once-per-parcel online event on operator infrastructure. In a deep-rural
   network the "depot" can be a low-connectivity branch office, not an urban
