@@ -181,7 +181,7 @@ $("s3").onclick = () => {
   const c = consent.append({ subject: window.__pid, grantedTo: LSP, purpose: "delivery",
     scope: ["fulfil"], at: Date.now(), expiresAt: Date.now() + 14 * 86400000 });
   grant = mint(capSecret, { pairwiseId: window.__pid, purpose: "delivery", maxUnits: 1,
-    fulfiller: "standard", expiresAt: Date.now() + 14 * 86400000, singleUse: true,
+    fulfiller: "standard", expiresAt: Date.now() + 14 * 86400000, singleUse: true, maxAttempts: 3,
     consentRef: c.ref, channelKind: "direct" });
   $("o3").textContent =
 `consent entry (hash-chained ledger): ref=${c.ref} hash=${c.hash.slice(0,24)}…

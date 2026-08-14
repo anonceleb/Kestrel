@@ -107,7 +107,7 @@ $("b-mint").onclick = () => {
   grant = mint(secret, {
     pairwiseId: "CFP-DEMO-PAIR", purpose: "delivery", maxUnits: 5,
     fulfiller: "demo-fulfiller", expiresAt: Date.now() + 300000,
-    singleUse: true, consentRef: "cns_demo", channelKind: "direct",
+    singleUse: true, maxAttempts: 3, consentRef: "cns_demo", channelKind: "direct",
   });
   show();
   log(`mint(secret, caveats) → chain=["authority"], mac over {id, caveats, chain}`);

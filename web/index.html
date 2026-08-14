@@ -127,7 +127,7 @@ const pid = derivePairwiseId(root, "operator.example");
 out.push(`derivePairwiseId(root, "operator.example")  = ${pid}`);
 
 const grant = mint(secret, { pairwiseId: pid, purpose: "delivery", maxUnits: 1,
-  fulfiller: "standard", expiresAt: Date.now() + 60000, singleUse: true,
+  fulfiller: "standard", expiresAt: Date.now() + 60000, singleUse: true, maxAttempts: 3,
   consentRef: "cns_boot", channelKind: "direct" });
 verify(secret, grant);
 out.push(`mint() → verify()                            <span class="ok">ok</span>  id=${grant.id.slice(0,8)}… mac=${grant.mac.slice(0,16)}…`);

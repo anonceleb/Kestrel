@@ -44,7 +44,34 @@ export type Caveats = {
    * `"access-point"` needs no address at all — the zero-attribute path.
    */
   channelKind: "direct" | "access-point" | "locker";
+  /**
+   * How many fulfilment attempts this grant's lineage may still make — the
+   * NDR (non-delivery report) budget, and a monotone counter like every
+   * other caveat: `attenuateToReattempt` may only ever decrease it.
+   *
+   * Distinct from `singleUse`, which governs the *token*. A grant burns on
+   * redemption whether or not the parcel actually reached anyone, so a
+   * failed attempt cannot be retried with the same token. A re-attempt is
+   * therefore a fresh, strictly weaker grant carrying one fewer attempt —
+   * which is what makes the budget enforceable rather than advisory: there
+   * is no code path that produces a re-attempt with more attempts than its
+   * parent, and the MAC covers the counter.
+   *
+   * Required, not optional. A grant that does not state its attempt budget
+   * would be asserting an unlimited one by omission, which is the same
+   * class of unstated default this codebase rejects elsewhere (see the
+   * no-self-signed-policy rule in packages/policy).
+   */
+  maxAttempts: number;
 };
+
+/**
+ * The network-policy default attempt budget, named and exported rather than
+ * inlined, so a deployment overrides one constant instead of hunting call
+ * sites. Three is the common carrier convention (an original plus two
+ * re-attempts before RTO); it is a default, not a derived figure.
+ */
+export const DEFAULT_MAX_ATTEMPTS = 3;
 
 export type Capability = {
   id: string;
@@ -60,6 +87,8 @@ export class CapabilityBurned extends Error {}
 export class CapabilityExpired extends Error {}
 export class CapabilityInvalid extends Error {}
 export class AttenuationWidened extends Error {}
+/** Thrown when a re-attempt is requested against a grant whose attempt budget is spent. */
+export class ReattemptsExhausted extends Error {}
 
 /**
  * `id` is part of the signed material. Single-use enforcement
@@ -90,6 +119,7 @@ function assertNotWidened(next: Caveats, prev: Caveats): void {
   if (next.expiresAt > prev.expiresAt) throw new AttenuationWidened("expiresAt");
   if (next.pairwiseId !== prev.pairwiseId) throw new AttenuationWidened("pairwiseId");
   if (prev.singleUse && !next.singleUse) throw new AttenuationWidened("singleUse");
+  if (next.maxAttempts > prev.maxAttempts) throw new AttenuationWidened("maxAttempts");
 }
 
 /**
@@ -136,6 +166,46 @@ export function attenuateToReturn(
   // A fresh id: a return is a distinct grant, single-use independently of
   // the one it descends from — sharing an id would couple their nonce
   // burns. Generated before the MAC, since id is now part of what's signed.
+  const id = randomUUID();
+  return { id, caveats: next, chain, mac: macOf(secret, id, next, chain) };
+}
+
+/**
+ * The re-attempt leg: a second knock after a failed delivery, as a fresh
+ * grant carrying one fewer attempt.
+ *
+ * Structurally the sibling of `attenuateToReturn`, and deliberately not a
+ * `purpose` change — a re-attempt is still a delivery, so it reuses the
+ * same purpose and the same `assertNotWidened` rule rather than opening a
+ * second transition anyone could widen through. What makes it its own
+ * function rather than a call to `attenuate()` is the counter: this is the
+ * only path that may decrement `maxAttempts`, and it always decrements by
+ * exactly one.
+ *
+ * Exhaustion is an error, not a silent no-op. A carrier that has spent its
+ * budget must escalate — to RTO, to a locker, to the subject — and a
+ * function that quietly returned an unusable grant would hide exactly the
+ * decision point the NDR flow exists to make explicit.
+ */
+export function attenuateToReattempt(
+  secret: Buffer,
+  cap: Capability,
+  narrower: Partial<Omit<Caveats, "purpose" | "maxAttempts">>,
+  by: string,
+): Capability {
+  if (cap.caveats.purpose !== "delivery") throw new AttenuationWidened("purpose");
+  if (cap.caveats.maxAttempts <= 1) throw new ReattemptsExhausted(cap.id);
+  const next: Caveats = {
+    ...cap.caveats,
+    ...narrower,
+    purpose: "delivery",
+    maxAttempts: cap.caveats.maxAttempts - 1,
+  };
+  assertNotWidened(next, cap.caveats);
+  const chain = [...cap.chain, by];
+  // A fresh id, for the same reason a return gets one: the previous
+  // attempt's token is already burned, and sharing an id would couple the
+  // two nonce burns.
   const id = randomUUID();
   return { id, caveats: next, chain, mac: macOf(secret, id, next, chain) };
 }

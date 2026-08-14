@@ -104,14 +104,14 @@ $("s1").onclick = () => {
   const c = consent.append({ subject: pid, grantedTo: MOBILITY, purpose: "delivery",
     scope: ["connect-call"], at: Date.now(), expiresAt: Date.now() + 3600000 });
   grant = mint(capSecret, { pairwiseId: pid, purpose: "delivery", maxUnits: 1,
-    fulfiller: "call", expiresAt: Date.now() + 3600000, singleUse: true,
+    fulfiller: "call", expiresAt: Date.now() + 3600000, singleUse: true, maxAttempts: 3,
     consentRef: c.ref, channelKind: "access-point" });
   $("out").textContent =
 `rider's e164: vault-side only — ciphertext at rest, ChaCha20-Poly1305
 
 driver app holds:
   pairwiseId = ${pid}
-  grant      = { id: ${grant.id.slice(0,8)}…, maxUnits: 1 (one call), singleUse: true, mac: ${grant.mac.slice(0,16)}… }`;
+  grant      = { id: ${grant.id.slice(0,8)}…, maxUnits: 1 (one call), singleUse: true, maxAttempts: 3, mac: ${grant.mac.slice(0,16)}… }`;
   $("s2").disabled = false;
 };
 

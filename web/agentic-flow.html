@@ -118,7 +118,7 @@ function remint() {
   const pid = derivePairwiseId(newRootSecret(), "merchant.example.org");
   const grant = mint(secret, {
     pairwiseId: pid, purpose: "delivery", maxUnits: 1, fulfiller: "MER-POST",
-    expiresAt: Date.now() + 14 * 24 * 3600 * 1000, singleUse: true,
+    expiresAt: Date.now() + 14 * 24 * 3600 * 1000, singleUse: true, maxAttempts: 3,
     consentRef: "cns_" + randomBytes(4).toString("hex"), channelKind: "locker",
   });
   document.getElementById("grant-pre").innerHTML =

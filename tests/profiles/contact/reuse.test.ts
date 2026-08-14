@@ -26,7 +26,7 @@ test("same FulfilmentGrant type, same verify function — a mobility number-mask
     maxUnits: 1, // one call
     fulfiller: "mobility-relay",
     expiresAt: Date.now() + 5 * 60_000,
-    singleUse: true,
+    singleUse: true, maxAttempts: 3,
     consentRef: "cns_ride_1",
     channelKind: "direct", // a direct call connect — same generic value the address profile uses for doorstep delivery
   });

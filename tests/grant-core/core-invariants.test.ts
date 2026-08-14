@@ -109,7 +109,7 @@ test("INV-11: attenuation may narrow a grant but never widen it", () => {
   const secret = randomBytes(32);
   const cap = mint(secret, {
     pairwiseId: "CFP-AAAA-BBBB-CCCC", purpose: "delivery", maxUnits: 5,
-    fulfiller: "NTR-OP", expiresAt: Date.now() + 60_000, singleUse: true,
+    fulfiller: "NTR-OP", expiresAt: Date.now() + 60_000, singleUse: true, maxAttempts: 3,
     consentRef: "cns_x", channelKind: "direct",
   });
   const narrower = attenuate(secret, cap, { maxUnits: 2 }, "agent-7");

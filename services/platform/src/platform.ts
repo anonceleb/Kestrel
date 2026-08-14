@@ -25,6 +25,8 @@ import { randomUUID } from "node:crypto";
 import {
   attenuate,
   attenuateToReturn,
+  attenuateToReattempt,
+  DEFAULT_MAX_ATTEMPTS,
   mint,
   NonceLedger,
   type Capability,
@@ -70,6 +72,8 @@ export type FulfilmentRequest = {
   units: number;
   fulfiller: string;
   channelKind: Caveats["channelKind"];
+  /** Attempt budget for this fulfilment. Omitted means the network-policy default. */
+  maxAttempts?: number;
 };
 
 export type GrantReady = { capability: Capability; merchantView: MerchantView };
@@ -233,6 +237,7 @@ export class Platform {
       singleUse: true,
       consentRef: consent.ref,
       channelKind: req.channelKind,
+      maxAttempts: req.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     });
     this.#capabilityConsent.set(capability.id, consent.ref);
 
@@ -337,6 +342,49 @@ export class Platform {
     );
     this.#capabilityConsent.set(returnCap.id, consent.ref);
     return returnCap;
+  }
+
+  /**
+   * The NDR leg: authorise one more delivery attempt after a failed one.
+   *
+   * Ownership-checked against the *subject*, exactly as `createReturn` is —
+   * a counterparty cannot extend its own attempt budget by asking, which is
+   * the whole point of the counter living in signed caveats rather than in
+   * the carrier's own system. Each re-attempt is its own consent event with
+   * its own ledger entry, so "how many times did anyone try to reach this
+   * person, and under what authority" is answerable from the ledger rather
+   * than from a carrier's logs.
+   *
+   * Note what this method cannot do: it never learns the address, and it
+   * never notifies the counterparty that an attempt failed. Failure reaches
+   * the *subject*, through `Vault.notifyFailedDelivery` — Platform holds no
+   * `subjectRef` to notify and no address to disclose. That asymmetry is
+   * INV-15.
+   */
+  reattemptDelivery(originatingCap: Capability, actorId: string, subjectRef: string): Capability {
+    const original = this.#consent.find(originatingCap.caveats.consentRef);
+    if (!original) throw new UnknownCapability("no consent record for the originating grant");
+    if (original.subject !== subjectRef) {
+      throw new NotAuthorized(`capability ${originatingCap.id} does not belong to subject ${subjectRef}`);
+    }
+
+    const consent = this.#consent.append({
+      subject: original.subject,
+      grantedTo: actorId,
+      purpose: "delivery",
+      scope: ["re-attempt-fulfilment"],
+      at: Date.now(),
+      expiresAt: original.expiresAt,
+    });
+
+    const reattemptCap = attenuateToReattempt(
+      this.#capSecret,
+      originatingCap,
+      { expiresAt: Math.min(originatingCap.caveats.expiresAt, original.expiresAt), consentRef: consent.ref },
+      actorId,
+    );
+    this.#capabilityConsent.set(reattemptCap.id, consent.ref);
+    return reattemptCap;
   }
 
   /**

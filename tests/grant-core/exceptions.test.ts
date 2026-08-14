@@ -4,7 +4,12 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CapabilityBurned, AttenuationWidened } from "../../packages/capability/src/capability.ts";
+import {
+  CapabilityBurned,
+  AttenuationWidened,
+  ReattemptsExhausted,
+  attenuate,
+} from "../../packages/capability/src/capability.ts";
 import { NotAuthorized } from "../../services/platform/src/platform.ts";
 import { harness, grantOnce } from "./harness.ts";
 
@@ -165,4 +170,74 @@ test("meta-invariant: no counterparty-facing projection distinguishes subject-in
   const revokedError = await h3.vault.resolve(cap3, "counterparty.example").catch((e) => e);
 
   assert.equal(replayError.constructor, revokedError.constructor);
+});
+
+/* ------------------------------------------------- NDR / re-attempt leg */
+
+test("INV-15: a re-attempt narrows the attempt budget monotonically and can never widen it", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  assert.equal(capability.caveats.maxAttempts, 3);
+
+  const second = h.platform.reattemptDelivery(capability, "counterparty.example", "sub_1");
+  assert.equal(second.caveats.maxAttempts, 2);
+  assert.equal(second.caveats.purpose, "delivery", "a re-attempt is still a delivery, not a new purpose");
+  assert.notEqual(second.id, capability.id, "a re-attempt is independently single-use");
+  assert.ok(second.caveats.expiresAt <= capability.caveats.expiresAt);
+  assert.equal(second.caveats.pairwiseId, capability.caveats.pairwiseId);
+
+  const third = h.platform.reattemptDelivery(second, "counterparty.example", "sub_1");
+  assert.equal(third.caveats.maxAttempts, 1);
+});
+
+test("INV-15: an exhausted attempt budget refuses rather than issuing an unusable grant", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const second = h.platform.reattemptDelivery(capability, "counterparty.example", "sub_1");
+  const third = h.platform.reattemptDelivery(second, "counterparty.example", "sub_1");
+  assert.equal(third.caveats.maxAttempts, 1);
+  // Budget spent: escalation (RTO, locker, ask the subject) is now the carrier's
+  // only move, and it has to be a deliberate one.
+  assert.throws(() => h.platform.reattemptDelivery(third, "counterparty.example", "sub_1"), ReattemptsExhausted);
+});
+
+test("INV-15: attenuate() cannot widen maxAttempts — the counter is signed material, not carrier state", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  assert.throws(
+    () => attenuate(h.capSecret, capability, { maxAttempts: 99 }, "counterparty.example"),
+    AttenuationWidened,
+  );
+});
+
+test("INV-15: a counterparty cannot extend its own attempt budget — re-attempt is subject-owned", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  assert.throws(
+    () => h.platform.reattemptDelivery(capability, "counterparty.example", "not-the-real-subject"),
+    NotAuthorized,
+  );
+});
+
+test("INV-15: the notification asymmetry holds across the whole NDR loop — failure reaches the subject, never the counterparty", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const notified: Array<{ subjectRef: string; event: string }> = [];
+  const notifications = { notify: (subjectRef: string, event: string) => notified.push({ subjectRef, event }) };
+
+  // Attempt 1 fails, a re-attempt is authorised, attempt 2 fails too.
+  h.vault.notifyFailedDelivery(capability, notifications);
+  const second = h.platform.reattemptDelivery(capability, "counterparty.example", "sub_1");
+  h.vault.notifyFailedDelivery(second, notifications);
+
+  assert.equal(notified.length, 2);
+  for (const n of notified) {
+    assert.equal(n.subjectRef, "sub_1");
+    assert.equal(n.event, "failed-delivery");
+  }
+  // Every re-attempt is its own consent event, so "how many times was this person
+  // approached, and under whose authority" is answerable from the ledger.
+  const reattemptEntries = h.consent.entries().filter((e) => e.scope.includes("re-attempt-fulfilment"));
+  assert.equal(reattemptEntries.length, 1);
+  assert.equal(reattemptEntries[0]!.grantedTo, "counterparty.example");
 });
