@@ -23,8 +23,22 @@ will be declined regardless of quality.
 
 ## Reporting a security or privacy issue
 
-Open an issue. This is a pre-v0.1 reference implementation with no production deployment, so there
-is no embargo process — file it in the open the same as any other bug.
+See [SECURITY.md](./SECURITY.md). Short version: anything that would let someone read a
+confidential attribute, forge or widen a grant, or write to the registry without authority goes
+through [GitHub's private vulnerability reporting](https://github.com/anonceleb/Kestrel/security/advisories/new).
+Everything else — ordinary bugs, spec questions, disagreements about the threat model — belongs
+in a public issue.
+
+This file previously said to open *all* security issues in public. That was wrong even for a
+pre-v0.1 reference implementation: the code has no deployment to protect, but a reporter should
+still get to choose disclosure timing, and telling them the private channel does not exist takes
+that choice away. The documented open problems in SECURITY.md remain public, because they are
+already public.
+
+## Conduct
+
+This project follows the [Contributor Covenant 2.1](./CODE_OF_CONDUCT.md), including how to
+report and what happens when a report concerns a maintainer.
 
 ## Maintainer
 

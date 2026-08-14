@@ -1,12 +1,12 @@
-# Privacy & data protection (Kestrel)
+# Privacy & data protection
 
-Kestrel (Confidential Fulfilment Profile) lets an action happen against a sensitive
+CFP (Confidential Fulfilment Profile) lets an action happen against a sensitive
 attribute — an address, a phone number — without ever exposing or transmitting the attribute
 itself.
 
-**Read this first:** Kestrel is a **reference implementation**, not a compliance product. This
+**Read this first:** CFP is a **reference implementation**, not a compliance product. This
 page describes how its design *aligns with* the goals of several privacy regimes and, just as
-importantly, what a deployer still has to do. It does not claim Kestrel "meets," "satisfies,"
+importantly, what a deployer still has to do. It does not claim CFP "meets," "satisfies,"
 or "complies with" any regulation, because compliance is a property of a deployment — its
 custody arrangements, retention policy, contracts, and operational controls — not of a
 library. Several of the mechanisms below are demo-grade by design, and some of the constraints
@@ -47,5 +47,5 @@ Stated here rather than left for a reader to discover.
 
 ## 4. What we collect
 
-Kestrel is a library, not a service — its authors never see, collect, or receive any user
+CFP is a library, not a service — its authors never see, collect, or receive any user
 data. Whoever deploys it is responsible for their own data protection and compliance.

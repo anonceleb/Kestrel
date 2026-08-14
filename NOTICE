@@ -7,6 +7,14 @@ Karthik Nagasubramanian, operating as Ekumen Digital Solutions LLP
 (incorporation pending). It is licensed under the Apache License,
 Version 2.0 — see LICENSE.
 
+Contact. Security and code-of-conduct reports go through GitHub's private
+vulnerability reporting on this repository:
+https://github.com/anonceleb/Kestrel/security/advisories/new — see
+SECURITY.md and CODE_OF_CONDUCT.md. Everything else belongs in a public
+issue. No email address is published: this is a two-person project ahead of
+LLP incorporation, and a private GitHub channel reaches both maintainers
+without depending on a personal inbox that will change.
+
 Lineage: this codebase originates from an earlier internal prototype as a
 company-operated confidential-address-vault product. That approach was
 abandoned — a company-operated address vault does not survive sovereignty,

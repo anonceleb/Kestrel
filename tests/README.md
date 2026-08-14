@@ -1,13 +1,20 @@
-# Invariant numbering — Kestrel vs. the base repository
+# Invariant numbering — CFP vs. the base repository
 
-The base repository's invariant suite is contiguous, INV-1…28, across 70 tests. Kestrel carries 28
-distinct numbered invariants across INV-1…35, across 60 tests. **These are not the same suite and
-the counts are not in tension** — Kestrel re-based the mechanism suite for a purpose-generic core,
-added new invariants for the gaps that re-basing closed (INV-27, INV-29…35), and re-cut some of the
-base repo's coverage into unnumbered tests or out of demo scope entirely. Publish this sentence
-wherever the counts are cited, so a reader never has to reconcile two different numbers themselves.
+The base repository's invariant suite is contiguous, INV-1…28, across 70 tests. CFP carries **31
+distinct numbered invariants across INV-1…37, in 75 tests** (`npm run verify`, 2026-08-14). The
+gaps are INV-17, 20, 21, 22, 26 and 28 — dispositioned below.
+**These are not the same suite and the counts are not in tension** — CFP re-based the mechanism
+suite for a purpose-generic core, added new invariants for the gaps that re-basing closed
+(INV-27, INV-29…37), and re-cut some of the base repo's coverage into unnumbered tests or out of
+demo scope entirely. Publish this sentence wherever the counts are cited, so a reader never has
+to reconcile two different numbers themselves.
 
-Eleven base-repo invariant numbers originally did not appear in Kestrel: INV-15, 17, 19, 20, 21, 22,
+Numbers added after the original re-base: **INV-36** (no emitted geo bucket denotes a cell below
+the k-floor), **INV-37** (a rejected redemption never burns the grant), **INV-4b** (Vault exposes
+no decryption path outside `resolve()`), and **INV-29c** (a facilitator credential is bound to the
+exact operation it authorizes).
+
+Eleven base-repo invariant numbers originally did not appear in CFP: INV-15, 17, 19, 20, 21, 22,
 23, 24, 25, 26, 28. Five have since been **restored** (INV-15, 19, 23, 24, 25); six remain carried
 un-numbered or out of scope. This file is the disposition for each of the original eleven, so a
 reviewer who diffs the two repos finds the answer already written rather than has to reconstruct
