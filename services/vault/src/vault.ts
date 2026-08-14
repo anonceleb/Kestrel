@@ -149,12 +149,35 @@ export class Vault {
   async resolve(cap: Capability, actor: string): Promise<{ routingCode: string }> {
     verifyCap(this.#capSecret, cap);
     this.#registry.lookup(actor); // actor must be a known registry participant
-    this.#nonces.burn(cap.id); // replay dies here — CapabilityBurned
 
+    /**
+     * Authorize BEFORE burning. The previous order — burn, then check
+     * consent — meant any registered participant holding a valid grant
+     * could permanently destroy it by attempting to redeem it: the burn
+     * landed, the consent check then failed, and the *consented*
+     * counterparty was left holding a grant the nonce ledger had already
+     * spent. That is a denial-of-service against the subject's fulfilment,
+     * reachable by anyone the grant legitimately passed through.
+     *
+     * Found by the turn loop on web/agentic-flow.html, which hands a
+     * narrowed grant to a courier and then expects the merchant's own
+     * redemption to still work.
+     *
+     * The burn stays the linearization point immediately before decryption,
+     * so single-use enforcement under concurrency is unchanged: whichever
+     * caller wins the burn is the one that proceeds (in a real deployment,
+     * an atomic compare-and-set). Only unauthorized callers now leave the
+     * ledger untouched.
+     *
+     * The indistinguishability property is preserved: a revoked grant and a
+     * replayed one both raise CapabilityBurned, from paths a counterparty
+     * cannot tell apart.
+     */
     if (!this.#consent.isValidFor(cap.caveats.consentRef, cap.caveats.purpose, actor)) {
-      // Same class, same shape as the replay rejection above.
       throw new CapabilityBurned(cap.id);
     }
+
+    this.#nonces.burn(cap.id); // replay dies here — CapabilityBurned
 
     const recordId = this.#bindings.get(cap.caveats.pairwiseId);
     if (!recordId) throw new Error("no binding for pairwiseId");

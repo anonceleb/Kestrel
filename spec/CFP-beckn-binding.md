@@ -289,9 +289,19 @@ than glossed. It is listed in §9.
 A merchant passing work to a carrier re-emits the same `Stop.authorization`
 shape with a strictly weaker token — narrower `channelKind`, sooner
 `expiresAt`, or a more specific `fulfiller`. Caveats accumulate and never
-relax; widening is rejected at redemption (`AttenuationWidened`). No new
-Beckn message is needed for this, because it is an ordinary `Stop` on the
-carrier's own fulfilment.
+relax; widening is rejected (`AttenuationWidened`). No new Beckn message is
+needed to *carry* it, because it is an ordinary `Stop` on the carrier's own
+fulfilment.
+
+**But narrowing is not delegation, and the binding must not imply it is.**
+In the reference implementation, redemption requires the redeeming actor to
+be the party named in the grant's consent entry, so a carrier holding a
+validly narrowed token cannot redeem it without a consent event of its own.
+A network adopting this binding therefore needs to decide where that event
+is expressed — plausibly the carrier's own `confirm` against the same
+subject — and that decision is not settled here. Until it is, the honest
+scope of §6.2 is: the *wire shape* for a handed-on grant is unchanged, the
+*authority model* for handing one on is an open question. See §9 item 5.
 
 ---
 
@@ -345,13 +355,18 @@ convention.
    implementation, not created by the binding but inherited by it.
 4. **Carrier binding.** Also open — nothing today cryptographically binds an
    attenuated grant to a specific physical carrier operative.
-5. **Vault discovery and cross-vault portability.** `fulfiller` names the
+5. **Forward-leg delegation.** Attenuation narrows authority but does not
+   transfer it — a carrier holding a validly narrowed grant cannot redeem it
+   without its own consent event. Where that event is expressed in Beckn
+   terms is unsettled, and it is the one open item bearing directly on this
+   binding rather than on the implementation beneath it.
+6. **Vault discovery and cross-vault portability.** `fulfiller` names the
    operator; resolving that to a vault endpoint via the registry is designed
    but not implemented. Cross-vault grant portability — the
    number-portability analogue — is a v0.1 design constraint, not code.
-6. **Multi-vault federation.** `Vault` is single-tenant per process today. A
+7. **Multi-vault federation.** `Vault` is single-tenant per process today. A
    network with more than one custodian is a different threat model.
-7. **Namespace-id allocation.** `cfp` is a placeholder pending CWG
+8. **Namespace-id allocation.** `cfp` is a placeholder pending CWG
    assignment.
 
 ---

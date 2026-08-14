@@ -9,8 +9,11 @@ import {
   AttenuationWidened,
   ReattemptsExhausted,
   attenuate,
+  verify,
 } from "../../packages/capability/src/capability.ts";
 import { NotAuthorized } from "../../services/platform/src/platform.ts";
+import { newKeyPair } from "../../packages/registry/src/signing.ts";
+import { randomUUID } from "node:crypto";
 import { harness, grantOnce } from "./harness.ts";
 
 test("INV-14: a return grant may never exceed the originating grant's scope", async () => {
@@ -240,4 +243,59 @@ test("INV-15: the notification asymmetry holds across the whole NDR loop — fai
   const reattemptEntries = h.consent.entries().filter((e) => e.scope.includes("re-attempt-fulfilment"));
   assert.equal(reattemptEntries.length, 1);
   assert.equal(reattemptEntries[0]!.grantedTo, "counterparty.example");
+});
+
+/**
+ * Found by building the agent turn loop on web/agentic-flow.html, which is
+ * the reason that page exists: a demo that drives the real modules surfaces
+ * claims the prose had been making loosely.
+ */
+test("attenuation narrows authority but does not transfer it — a non-consented redeemer is refused", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+
+  // A second, entirely legitimate network participant — the courier the
+  // merchant would like to hand the work to.
+  const k = newKeyPair();
+  const courier = {
+    subscriberId: "courier.example", role: "operator" as const, keyId: "k1",
+    publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(courier, h.authFor(courier));
+
+  // A validly narrowed grant: strictly weaker, correct MAC, not expired.
+  const handedOn = attenuate(h.capSecret, capability, { maxUnits: 1, maxAttempts: 1 },
+    "counterparty.example", { newId: randomUUID() });
+  verify(h.capSecret, handedOn);
+
+  // ...and it still cannot be redeemed, because redemption is bound to the
+  // actor named in the consent entry, not to whoever holds the token.
+  const err = await h.vault.resolve(handedOn, "courier.example").catch((e) => e);
+  assert.ok(err instanceof CapabilityBurned, `expected refusal, got ${err?.constructor?.name}`);
+
+  // The same grant in the consented party's hands works, so the refusal is
+  // about *who is redeeming*, not about the grant being malformed.
+  const ok = await h.vault.resolve(handedOn, "counterparty.example");
+  assert.match(ok.routingCode, /./);
+});
+
+test("INV-37: a rejected redemption never burns the grant — no participant can DoS another's fulfilment", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const k = newKeyPair();
+  const stranger = {
+    subscriberId: "stranger.example", role: "operator" as const, keyId: "k1",
+    publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(stranger, h.authFor(stranger));
+
+  // Three rejected attempts by a registered-but-not-consented participant.
+  for (let i = 0; i < 3; i++) {
+    const err = await h.vault.resolve(capability, "stranger.example").catch((e) => e);
+    assert.ok(err instanceof CapabilityBurned);
+  }
+  // The consented counterparty's grant is still spendable. Before the
+  // authorize-before-burn fix, the first rejection consumed it.
+  const ok = await h.vault.resolve(capability, "counterparty.example");
+  assert.match(ok.routingCode, /./);
 });

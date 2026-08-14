@@ -36,6 +36,14 @@
   ul{margin:0 0 14px; padding-left:20px; max-width:80ch;}
   li{margin-bottom:8px;}
   footer{border-top:1px solid var(--hair); margin-top:44px; padding-top:14px; font-size:12px; color:var(--dim);}
+  .turnbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:18px 0 14px;}
+  .holdings{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px;}
+  @media(max-width:840px){.holdings{grid-template-columns:1fr;}}
+  .hold h3{font-size:12px; margin:0 0 6px; font-weight:700;}
+  .hold pre{font-size:11.5px; min-height:118px; margin:0;}
+  #loglines{font-size:12px; white-space:pre-wrap; min-height:150px;}
+  button[disabled]{opacity:.4; cursor:default;}
+  button[disabled]:hover{background:transparent; color:var(--ink);}
 </style>
 </head>
 <body>
@@ -89,6 +97,40 @@ request carrying a <code>FulfilmentGrant</code> instead — minted live by this 
 </div>
 
 <section>
+  <h2>The turn loop — an agent holding a capability, never an address</h2>
+  <p>The comparison above is a schema argument. This is the thing itself: seven turns, driven by
+  the repository's own <code>Vault</code>, registry, consent ledger and capability modules running
+  in this page. Watch the <b>holdings</b> row — neither the agent nor the merchant ever acquires an
+  address, and the grant the merchant receives is strictly weaker than the one the agent held.</p>
+  <p>Turn 7 is the one worth staying for. It shows the boundary of attenuation, which is a
+  property this project had described loosely until the loop was built: <b>narrowing a grant
+  transfers no authority.</b> A fully registered courier holding a validly narrowed grant still
+  cannot redeem it, because redemption is bound to the actor the subject consented to.</p>
+
+  <div class="turnbar">
+    <button id="next">next turn ▸</button>
+    <button id="reset">reset</button>
+    <span id="turnlabel" class="dim">turn 0 of 7 — not started</span>
+  </div>
+
+  <div class="holdings">
+    <div class="hold"><h3>Agent</h3><pre id="h-agent">—</pre></div>
+    <div class="hold"><h3>Merchant</h3><pre id="h-merchant">—</pre></div>
+    <div class="hold"><h3>Vault · ZONE 1</h3><pre id="h-vault">—</pre></div>
+  </div>
+
+  <pre id="loglines">press “next turn” to begin.</pre>
+
+  <p class="note">Every line above is produced by calling the shipped modules — including all three
+  refusals, which are real thrown error classes (<code>AttenuationWidened</code>,
+  <code>CapabilityBurned</code>) rather than strings written for the demo. The address is entered
+  once at turn 1 and is never readable again outside Zone 1. What turn 7 also shows is a gap:
+  multi-hop delegation needs its own consent event, and no forward-leg equivalent of
+  <code>createReturn()</code> exists yet — see
+  <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>.</p>
+</section>
+
+<section>
   <h2>Facts as cited, checked against primary sources</h2>
   <ul>
     <li>ACP checkout schema — <code>fulfillment_address</code> as a plaintext <code>Address</code>
@@ -109,9 +151,17 @@ request carrying a <code>FulfilmentGrant</code> instead — minted live by this 
 </div>
 
 <script type="module">
-import { mint } from "./assets/js/packages/capability/src/capability.js";
+import { mint, attenuate, verify, NonceLedger, AttenuationWidened, CapabilityBurned } from "./assets/js/packages/capability/src/capability.js";
 import { derivePairwiseId, newRootSecret } from "./assets/js/packages/identity/src/pairwise.js";
+import { Registry, newKeyPair, signRequest } from "./assets/js/packages/registry/src/signing.js";
+import { Vault } from "./assets/js/services/vault/src/vault.js";
+import { Kms } from "./assets/js/packages/crypto/src/envelope.js";
+import { AuditLog, ConsentLedger } from "./assets/js/packages/core/src/core.js";
+import { IndiaPostRouting, geoBucketFor } from "./assets/js/adapters/india-post/src/adapter.js";
+import { FlatDensity } from "./assets/js/profiles/address/src/precision.js";
 import { randomBytes } from "./assets/js/node-crypto.js";
+
+/* ------------------------------------------------ ACP comparison (above) */
 
 function remint() {
   const secret = randomBytes(32);
@@ -132,6 +182,7 @@ function remint() {
     "channelKind": "locker",
     "expiresAt": <span class="hl2">${grant.caveats.expiresAt}</span>,
     "singleUse": true,
+    "maxAttempts": 3,
     "chain": ["authority"],
     "mac": <span class="hl2">"${grant.mac}"</span>
   },
@@ -140,6 +191,118 @@ function remint() {
 }
 document.getElementById("remint").onclick = remint;
 remint();
+
+/* ------------------------------------------------------------ turn loop */
+
+const FAC = "facilitator.cfp.example";
+const AGENT = "agent.example.org";
+const MERCHANT = "merchant.example.org";
+const COURIER = "courier.example.org";
+const ADDRESS = { line1: "14 Harbour Lane", locality: "Calder", postcode: "482001", digipin: "39J49L8T4C" };
+const DENSITY = new FlatDensity(200);
+
+const $$ = (id) => document.getElementById(id);
+let S = null, turn = 0;
+const lines = [];
+
+function log(s) { lines.push(s); $$("loglines").textContent = lines.join("\n"); }
+function holdings(a, m, v) { $$("h-agent").textContent = a; $$("h-merchant").textContent = m; $$("h-vault").textContent = v; }
+const show = (c) => `${c.id.slice(0, 8)}…\nunits=${c.caveats.maxUnits} attempts=${c.caveats.maxAttempts}\nchannel=${c.caveats.channelKind}\nexpires +${Math.round((c.caveats.expiresAt - Date.now()) / 3600000)}h\nchain=[${c.chain.join(" → ")}]`;
+
+function setup() {
+  const facKeys = newKeyPair();
+  const registry = new Registry({ subscriberId: FAC, role: "facilitator", keyId: "k1",
+    publicKey: facKeys.publicKey, tier: 3, status: "active" });
+  const auth = (body) => ({ envelope: signRequest(FAC, "k1", facKeys.privateKey, body), body });
+  for (const id of [AGENT, MERCHANT, COURIER]) {
+    const p = { subscriberId: id, role: "operator", keyId: "k1",
+                publicKey: newKeyPair().publicKey, tier: 2, status: "active" };
+    registry.register(p, auth(p));
+  }
+  const consent = new ConsentLedger(), audit = new AuditLog();
+  const capSecret = randomBytes(32);
+  const vault = new Vault({ kms: new Kms(), audit, consent, nonces: new NonceLedger(),
+    capSecret, routing: new IndiaPostRouting(), registry });
+  return { registry, consent, audit, capSecret, vault, root: newRootSecret() };
+}
+
+const TURNS = [
+  () => {
+    S.pid = S.vault.issuePairwiseId(S.root, MERCHANT);
+    const bucket = geoBucketFor(ADDRESS.digipin, DENSITY);
+    S.vault.store({ id: "rec-1", subjectRef: "subject-known-only-to-vault", tenantId: "indiapost",
+      payload: ADDRESS, geoBucket: bucket, assurance: "tier-2" });
+    S.vault.bind(S.pid, "rec-1");
+    log(`turn 1 · the subject onboards, once\n  address sealed in Zone 1 — ChaCha20-Poly1305, per-record HKDF key\n  what leaves Zone 1: pairwise id ${S.pid}\n  and a coarse bucket ${bucket}, derived from k=25, not a constant`);
+    holdings(`(nothing yet)`, `(nothing yet)`, `address (sealed)\nkeys\nbinding → pairwise id`);
+  },
+  () => {
+    const c = S.consent.append({ subject: S.pid, grantedTo: MERCHANT, purpose: "delivery",
+      scope: ["fulfil"], at: Date.now(), expiresAt: Date.now() + 14 * 24 * 3600e3 });
+    S.consentRef = c.ref;
+    log(`\nturn 2 · the subject approves this errand\n  consent ${c.ref} appended, hash-chained (prev ${c.prevHash.slice(0, 12)}…)\n  per-event, never standing. It names the purpose AND the actor of\n  record — here the merchant, who will fulfil. The agent is a conduit.`);
+  },
+  () => {
+    S.agentGrant = mint(S.capSecret, { pairwiseId: S.pid, purpose: "delivery", maxUnits: 5,
+      fulfiller: "IND-POST", expiresAt: Date.now() + 14 * 24 * 3600e3, singleUse: true,
+      maxAttempts: 3, consentRef: S.consentRef, channelKind: "direct" });
+    verify(S.capSecret, S.agentGrant);
+    log(`\nturn 3 · the agent is handed a capability, not an address\n  ${S.agentGrant.id}\n  5 units · 3 attempts · direct · 14 days\n  it can now cause a delivery to a person it cannot identify\n  and to a place it cannot read.`);
+    holdings(`pairwise id ${S.pid}\n\n${show(S.agentGrant)}`, `(nothing yet)`, `address (sealed)\nkeys\nnonce ledger`);
+  },
+  () => {
+    S.merchantGrant = attenuate(S.capSecret, S.agentGrant,
+      { maxUnits: 1, maxAttempts: 2, channelKind: "locker", expiresAt: Date.now() + 48 * 3600e3 },
+      AGENT, { newId: crypto.randomUUID() });
+    let refused = "";
+    try { attenuate(S.capSecret, S.merchantGrant, { maxUnits: 5 }, MERCHANT); }
+    catch (e) { refused = `${e.constructor.name}("${e.message}")`; }
+    log(`\nturn 4 · the agent narrows it BEFORE handing it on\n  5→1 units · 3→2 attempts · direct→locker · 14d→48h\n  no round trip to the vault to do this.\n  the merchant then tries to widen it back:\n    ${refused}\n  narrowing is one-way, and the MAC covers every caveat.`);
+    holdings(`${show(S.agentGrant)}`, `${show(S.merchantGrant)}`, `address (sealed)\nkeys\nnonce ledger`);
+  },
+  () => S.vault.resolve(S.merchantGrant, MERCHANT).then(({ routingCode }) => {
+    const rec = S.audit.forRecord("rec-1")[0];
+    log(`\nturn 5 · the merchant redeems\n  audit written BEFORE decryption, in the same call frame:\n    actor=${rec.actor}  purpose=${rec.purpose}  consent=${rec.consentRef}\n  → routingCode ${routingCode}\n  a sortation code left Zone 1. The address did not.`);
+    holdings(`${show(S.agentGrant)}\n(spent downstream)`, `routingCode only\n\nno address, ever`, `address (sealed)\nnonce burned\naudit written`);
+  }),
+  () => S.vault.resolve(S.merchantGrant, MERCHANT).then(
+    () => log(`\nturn 6 · REPLAY SUCCEEDED — that is a bug; please report it`),
+    (e) => log(`\nturn 6 · the merchant replays the same grant\n  ${e.constructor.name}("${e.message}")\n  single-use is enforced on the grant id in the nonce ledger.\n  a revoked grant fails identically — the merchant cannot tell\n  “already spent” from “the subject withdrew consent”.`)),
+  () => {
+    const handOn = attenuate(S.capSecret, S.agentGrant, { maxUnits: 1, maxAttempts: 1 },
+      MERCHANT, { newId: crypto.randomUUID() });
+    return S.vault.resolve(handOn, COURIER).then(
+      () => log(`\nturn 7 · a non-consented courier redeemed it — that is a bug`),
+      (e) => {
+        log(`\nturn 7 · the merchant sub-delegates to a courier\n  the courier is a fully registered network participant, and the\n  grant it holds is validly narrowed. It still cannot redeem:\n    ${e.constructor.name}("${e.message}")\n\n  ATTENUATION NARROWS AUTHORITY; IT DOES NOT TRANSFER IT.\n  Redemption is bound to the actor the subject consented to.\n  A stolen grant is therefore not redeemable by an arbitrary\n  operator — but multi-hop delegation needs its own consent\n  event, and no forward-leg equivalent of createReturn() exists\n  yet. See spec §9.`);
+        $$("next").disabled = true;
+      });
+  },
+];
+
+async function nextTurn() {
+  if (turn >= TURNS.length) return;
+  if (!S) S = setup();
+  $$("next").disabled = true;
+  try { await TURNS[turn](); turn++; }
+  catch (e) { log(`\nunexpected: ${e.constructor.name}("${e.message}")`); }
+  $$("turnlabel").textContent = turn >= TURNS.length
+    ? `turn ${turn} of ${TURNS.length} — loop complete`
+    : `turn ${turn} of ${TURNS.length}`;
+  if (turn < TURNS.length) $$("next").disabled = false;
+}
+
+function reset() {
+  S = null; turn = 0; lines.length = 0;
+  $$("loglines").textContent = "press “next turn” to begin.";
+  $$("turnlabel").textContent = `turn 0 of ${TURNS.length} — not started`;
+  holdings("—", "—", "—");
+  $$("next").disabled = false;
+}
+
+$$("next").onclick = nextTurn;
+$$("reset").onclick = reset;
+reset();
 </script>
 </body>
 </html>

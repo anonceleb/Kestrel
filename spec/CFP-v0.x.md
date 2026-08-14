@@ -27,12 +27,13 @@ FulfilmentGrant = {
   id: string,            // UUID, part of the signed material
   caveats: {
     pairwiseId: string,    // subject-side pairwise reference, never a stable id
-    purpose: "delivery" | "return" | "redirect",
+    purpose: "delivery" | "return",
     maxUnits: number,      // generic magnitude cap — kg for a parcel, minutes for a call
     fulfiller: string,     // the executing operator/channel
-    channelKind: "door" | "access-point" | "locker",
+    channelKind: "direct" | "access-point" | "locker",
     expiresAt: number,     // epoch ms
-    singleUse: boolean,
+    singleUse: boolean,    // governs the TOKEN
+    maxAttempts: number,   // governs the FULFILMENT — the NDR budget, monotone
     consentRef: string,    // points at the ConsentEntry this grant was minted against
   },
   chain: string[],        // attenuation lineage
@@ -52,10 +53,15 @@ Zone 1:
 
 1. Verify the grant's MAC and expiry.
 2. Verify `actor` is a known, active registry participant.
-3. Burn the grant's nonce (single-use enforcement) — a second `resolve()`
-   call with the same grant throws `CapabilityBurned`.
-4. Check the referenced consent entry is valid for this purpose and this
-   actor, and not revoked.
+3. Check the referenced consent entry is valid for this purpose and this
+   actor, and not revoked. **This precedes the burn deliberately**: an
+   earlier revision burned first, which let any registered participant
+   holding a valid grant destroy it by attempting redemption, denying the
+   consented counterparty (see §9, INV-37).
+4. Burn the grant's nonce (single-use enforcement) — a second `resolve()`
+   call with the same grant throws `CapabilityBurned`. The burn is the
+   linearization point immediately before decryption, so a real deployment
+   makes it an atomic compare-and-set and proceeds only if it wins.
 5. **Write the audit record — actor, purpose, consent reference, record id —
    before decrypting anything.** A decryption that cannot be attributed to
    these three things is not a policy violation; it is unreachable code.
@@ -89,12 +95,22 @@ Only the subject may see why their own grant stopped being actionable.
 
 `attenuate()` produces a strictly narrower grant: `maxUnits` may only
 decrease, `expiresAt` may only decrease, `pairwiseId` may never change,
-`singleUse` may only tighten (`false → true`, never the reverse), and
-`purpose` may never change through this function. The one sanctioned
-purpose transition — `delivery → return` — has its own function,
-`attenuateToReturn()`, which still runs the identical narrowing check;
-`attenuate()` itself keeps rejecting that same transition, so the sanctioned
-path is the only reachable one.
+`singleUse` may only tighten (`false → true`, never the reverse),
+`maxAttempts` may only decrease, and `purpose` may never change through this
+function. Two sanctioned transitions have their own functions, both reusing
+the identical narrowing check, so the sanctioned paths are the only
+reachable ones:
+
+- `attenuateToReturn()` — the one purpose transition, `delivery → return`.
+  `attenuate()` itself keeps rejecting that same transition.
+- `attenuateToReattempt()` — the NDR leg. Not a purpose change: a re-attempt
+  is still a delivery. It is the only path that may decrement `maxAttempts`,
+  and it always decrements by exactly one, raising `ReattemptsExhausted`
+  rather than issuing an unusable grant when the budget is spent.
+
+**Attenuation narrows authority; it does not transfer it.** Redemption is
+bound to the actor named in the grant's consent entry, so a validly narrowed
+grant in a third party's hands is refused. See §9.
 
 ## 6. Pairwise reference derivation
 
@@ -398,6 +414,24 @@ list is worth more than a long defensive one:
   defensible — a bounded countersigning window, recorded refusals, and a
   countersigner with no interest in the records surviving — are
   specification commitments only. None is enforced in code.
+- **Authorize-before-burn (fixed, noted for the record).** `Vault.resolve`
+  previously burned the single-use nonce before checking consent, so any
+  registered participant holding a valid grant could permanently destroy it
+  by attempting redemption — a denial of service against the subject's
+  fulfilment, reachable by anyone the grant legitimately passed through.
+  The consent check now precedes the burn; the burn remains the
+  linearization point immediately before decryption, so single-use
+  semantics under concurrency are unchanged. Pinned by INV-37.
+- **Forward-leg delegation.** Attenuation narrows authority but does not
+  transfer it: `Vault.resolve` requires the redeeming actor to be the party
+  named in the grant's consent entry, so a courier holding a validly
+  narrowed grant from a merchant cannot redeem it. `Platform.createReturn`
+  mints a fresh consent entry for the reverse leg (§7.1); there is no
+  forward-leg equivalent, so merchant-to-carrier handoff currently requires
+  a round trip that the attenuation story implies it does not. Demonstrated
+  live at turn 7 of `web/agentic-flow.html`. The security half of this is
+  worth stating too: a stolen grant is not redeemable by an arbitrary
+  registered operator, only by the consented one.
 - **Density provenance for the precision ladder.** §6a derives bucket
   precision from a `DensityPort`, and the only implementation shipped is a
   flat value. Whose density figure is authoritative, and at what

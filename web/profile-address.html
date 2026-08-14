@@ -90,8 +90,10 @@ plaintext-address path stays available as a fallback, so no participant must upg
 <section>
   <h2>5. Depot resolve — the single online event</h2>
   <p class="dim">Audit record is written <em>before</em> decryption, in the same call. The routing
-  port sees the plaintext transiently and emits a sortation code from a truncated 6-of-10
-  DIGIPIN prefix; the full DIGIPIN and address never leave the call frame.</p>
+  port sees the plaintext transiently and emits a sortation code — a SHA-256 of the full
+  DIGIPIN plus the service, truncated, so it is opaque and carries no geography. The coarse
+  <em>bucket</em> below is the separate, derived-length DIGIPIN prefix. Neither the full DIGIPIN
+  nor the address leaves the call frame.</p>
   <button id="s5" disabled>vault.resolve(grant, "lsp.indiapost.example")</button>
   <pre id="o5">—</pre>
 </section>

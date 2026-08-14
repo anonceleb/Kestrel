@@ -174,6 +174,22 @@ implementation shipped here is a flat value — a deployment using it in product
 that India has uniform population density. Wiring real census or operator data, and deciding whose
 figure is authoritative, is unsettled.</p>
 
+<h3>Attenuation narrows authority but does not transfer it <span class="st open">— open</span></h3>
+<p>Building the agent turn loop on <a href="./agentic-flow.html">agentic-flow</a> surfaced a claim
+this project had been making loosely. <code>attenuate()</code> lets a holder produce a strictly
+weaker grant with no round trip — but <code>Vault.resolve</code> requires the redeeming actor to be
+the party named in the grant's consent entry, so a courier holding a validly narrowed grant from a
+merchant <em>cannot redeem it</em>. Turn 7 of the loop demonstrates exactly this, with a fully
+registered courier and a legitimately narrowed grant.</p>
+<p>Two halves, and both are worth saying. The <strong>security half</strong> is one we had been
+underselling: a stolen grant is not redeemable by an arbitrary registered operator, only by the
+consented one. The binding is subscriber-level and not cryptographic — there is still no
+proof-of-possession, which is the separate carrier-identity gap — but it is not absent. The
+<strong>limitation half</strong>: multi-hop delegation needs its own consent event.
+<code>Platform.createReturn</code> does that for the reverse leg; no forward-leg equivalent exists,
+so merchant-to-carrier handoff currently needs a round trip the attenuation story implied it did
+not. Named in <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>.</p>
+
 <h3>Gap #5's convention is not yet a construction <span class="st open">— open</span></h3>
 <p>See item 5 above: <code>Platform.createGrant</code> accepts any string as <code>subjectRef</code>
 today. The ledger enforces pairwise separation once a value is stored, but nothing stops a caller

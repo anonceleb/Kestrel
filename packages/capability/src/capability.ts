@@ -13,9 +13,28 @@
  * generic magnitude cap (kilograms for a parcel, minutes for a call — the
  * profile decides the unit).
  *
- * Attenuation (Biscuit/macaroon semantics) lets a holder pass a strictly
- * weaker grant downstream — e.g. merchant to courier — with no round trip
- * to us, and with no ability to widen. Caveats accumulate; they never relax.
+ * Attenuation (Biscuit/macaroon semantics) lets a holder produce a strictly
+ * weaker grant with no round trip to us and no ability to widen. Caveats
+ * accumulate; they never relax.
+ *
+ * **Attenuation narrows authority; it does not transfer it.** An earlier
+ * revision of this docstring said a holder could pass a weaker grant
+ * "downstream — e.g. merchant to courier," which overstates what the code
+ * does. `Vault.resolve` requires the redeeming actor to be the party named
+ * in the grant's consent entry (`ConsentLedger.isValidFor` checks
+ * `grantedTo === actor`), so a courier holding a validly narrowed grant
+ * cannot redeem it. Two consequences, and both are worth stating plainly:
+ *
+ *   1. A *security property* this project had been underselling: a stolen
+ *      grant is not redeemable by an arbitrary registered operator, only by
+ *      the consented one. The binding is subscriber-level and non-
+ *      cryptographic — there is still no proof-of-possession, which is the
+ *      separate carrier-identity gap — but it is not absent.
+ *   2. A *limitation*: multi-hop delegation needs its own consent event.
+ *      `Platform.createReturn` does exactly that for the reverse leg; no
+ *      forward-leg equivalent exists yet. See spec §9.
+ *
+ * The turn loop on `web/agentic-flow.html` demonstrates both, live.
  */
 import { createHmac, randomUUID } from "node:crypto";
 import type { DeDiDirectoryPort } from "../../directory/src/directory.ts";
