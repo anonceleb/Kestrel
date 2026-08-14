@@ -58,7 +58,7 @@
  * here — this file does NOT claim to implement the general
  * X25519-key-conversion case of XEdDSA.
  *
- * [Gap fix — THREAT_MODEL.md §2 item 5] `register()`/`suspend()` used to be
+ * [Gap fix — closes web/candid-books.html gap 1, "Registry write authorization"] `register()`/`suspend()` used to be
  * unauthenticated method calls: anyone holding a `Registry` reference could
  * admit or suspend any subscriber. Both now require a signed credential
  * from an already-registered, active `role: "facilitator"` subscriber — the

@@ -23,3 +23,30 @@ jobs:
         with:
           node-version: "22.6"
       - run: node --experimental-strip-types tools/link-check/check.ts
+
+  # "The demo runs the shipped code" is a claim the README and NOTICE both
+  # make. Before this job existed nothing enforced it: web/assets/js/ is
+  # generated and committed, so a source change with no matching `npm run
+  # build:web` would silently ship a stale demo — the claim would be false
+  # and CI would still pass. This regenerates web/assets/js/ from source and
+  # fails if that produces any diff against what's committed.
+  demo-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.6"
+      - run: npm run build:web
+      # manifest.json's `generatedAt` is a wall-clock timestamp with no
+      # bearing on content — it changes on every build and would make this
+      # gate fail on every run, not just on real drift. Every other field,
+      # including each file's SHA-256, must match exactly.
+      - run: |
+          if ! git diff --quiet -- web/assets/js -- ':!web/assets/js/manifest.json'; then
+            echo "::error::web/assets/js is stale — run 'npm run build:web' and commit the result."
+            git diff --stat -- web/assets/js
+            exit 1
+          fi
+          git show HEAD:web/assets/js/manifest.json > /tmp/head-manifest.json
+          node tools/web-build/compare-manifest.mjs /tmp/head-manifest.json web/assets/js/manifest.json

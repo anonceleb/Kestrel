@@ -8,7 +8,7 @@
  * decision can point at the exact bytes of the policy that made it, which
  * the hash gives for free.
  *
- * [Gap fix — THREAT_MODEL.md §2 item 4] The old `defaultPolicyStore()` in
+ * [Gap fix — closes web/candid-books.html gap 2, "Self-signed default disclosure policy"] The old `defaultPolicyStore()` in
  * `services/platform` generated a fresh Ed25519 keypair inline, signed
  * `minTierToShip` with it, and discarded the private key — Platform could
  * "sign" its own policy changes with a key nobody else ever held. That

@@ -6,7 +6,7 @@
  * than deniable. The honeypot is Zone 1: one service, one job, one audited
  * exit.
  *
- * [Gap fix — THREAT_MODEL.md §1, §2 item 2] `issuePairwiseId` does not
+ * [Gap fix — closes web/candid-books.html gap 4, "Root-secret placement"] `issuePairwiseId` does not
  * exist on this class at all — a Zone-2 method that accepted a `RootSecret`
  * as a plain argument would have no enforced boundary stopping it from
  * being reachable over a network from a consumer wallet. Pairwise-ID
@@ -15,7 +15,7 @@
  * on `Platform`'s public surface that accepts a `RootSecret`, so a root
  * secret cannot reach Zone 2's API by construction, not by discipline.
  *
- * [Gap fix — THREAT_MODEL.md §2 item 4] No self-signed default policy. A
+ * [Gap fix — closes web/candid-books.html gap 2, "Self-signed default disclosure policy"] No self-signed default policy. A
  * caller that doesn't supply a `PolicyStore` gets
  * `demoOnlyInsecurePolicyStore()` from packages/policy, which throws unless
  * `CFP_ALLOW_DEMO_POLICY=1` — every real construction path must hand

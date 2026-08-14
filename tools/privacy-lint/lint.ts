@@ -6,7 +6,7 @@
  *      keeps the standards-agnostic claim honest rather than aspirational.
  *   2. No PII-shaped identifier may appear in a Zone 3 (counterparty-facing)
  *      type or in any logging call.
- *   3. [Gap fix — THREAT_MODEL.md §2 item 6, §3 "operator insider"] The
+ *   3. [Gap fix — closes web/candid-books.html gap 3, "Adapter log-hygiene coverage"] The
  *      log-hygiene scan now also walks adapters/ and profiles/, not just
  *      packages/ and services/ — closing the one directory whose code is
  *      most likely to legitimately touch plaintext.

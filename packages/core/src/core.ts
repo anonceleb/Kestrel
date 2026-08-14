@@ -18,7 +18,7 @@ export type ConsentEntry = {
   seq: number;
   ref: string;
   /**
-   * [Gap fix — THREAT_MODEL.md §1, §2 item 7] A *pairwise* reference,
+   * [Gap fix — closes web/candid-books.html gap 5, "Platform-side cross-merchant correlation"] A *pairwise* reference,
    * derived per-counterparty via packages/identity's derivePairwiseId, never
    * a stable root identity reference. A stable reference visible to Platform
    * across every consent entry regardless of which merchant it was granted

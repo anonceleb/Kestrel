@@ -5,7 +5,7 @@
  * serve counterparties, does not render UI, does not hold business logic.
  * It resolves a grant into a routing code and writes an audit record first.
  *
- * [Gap fix — THREAT_MODEL.md §1, §2 item 2] Pairwise-ID issuance lives
+ * [Gap fix — closes web/candid-books.html gap 4, "Root-secret placement"] Pairwise-ID issuance lives
  * here, not on Platform. A Zone-2 method that took a `RootSecret` as a
  * plain argument would leave nothing in the type system or module boundary
  * to stop it being wired to a live network endpoint reachable from a
@@ -16,7 +16,7 @@
  * root secret can reach Zone 2's public API surface — see
  * tests/grant-core/gap-fixes.test.ts (INV-32).
  *
- * [Gap fix — THREAT_MODEL.md §2 item 5 analog] `erase()` used to be callable
+ * [Gap fix — the same accountability shape as web/candid-books.html gap 1, "Registry write authorization"] `erase()` used to be callable
  * by anyone holding a `Vault` reference, with no caller-identity check. It
  * now requires a facilitator-signed `WriteAuth`, verified against the same
  * `Registry` that gates `Registry.register()`/`suspend()` — a consumer

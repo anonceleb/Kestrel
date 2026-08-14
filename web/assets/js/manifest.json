@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T17:14:54.268Z",
+  "generatedAt": "2026-08-14T17:39:25.977Z",
   "selftestChecks": 63,
   "note": "Each emitted module is the named repo source with types stripped and import specifiers rewritten. node-crypto.js is the browser shim, verified against node:crypto by tools/web-build/build.ts before emit.",
   "files": [
@@ -11,7 +11,7 @@
     {
       "source": "packages/core/src/core.ts",
       "emitted": "web/assets/js/packages/core/src/core.js",
-      "sourceSha256": "e0ad86adaaf0975ed973ed8997673474e182d45b313863360a22be612b122ae5"
+      "sourceSha256": "db31e9716adc352d6bde9b2a0aa4bfc49585f1e4e87bced14e926426a2add3b1"
     },
     {
       "source": "packages/crypto/src/envelope.ts",
@@ -56,12 +56,12 @@
     {
       "source": "packages/policy/src/policy.ts",
       "emitted": "web/assets/js/packages/policy/src/policy.js",
-      "sourceSha256": "5b9450db11db0b856fb0054f8265cab06f08850e24ddcc049894e7f1d11eff56"
+      "sourceSha256": "2328bd97bb7dc22358815c643afe1368d79c1b43bdba5fbb8c9a68512d68965c"
     },
     {
       "source": "packages/registry/src/signing.ts",
       "emitted": "web/assets/js/packages/registry/src/signing.js",
-      "sourceSha256": "950e92eb3e38efea9413bb746d5e781f752ffcf0d97cdb686e1cee728c6f7279"
+      "sourceSha256": "5dad8c84c6a557eec00bbe14959946286c8a8e3697ac90fe8c39b8ada2491348"
     },
     {
       "source": "packages/sdk/src/client.ts",
@@ -76,12 +76,12 @@
     {
       "source": "services/platform/src/platform.ts",
       "emitted": "web/assets/js/services/platform/src/platform.js",
-      "sourceSha256": "4c600d30c1155d9d25a08770d3eca418ef0ec3c7093cb608c30dbe1b62143071"
+      "sourceSha256": "9c30c79ac1e8c019d88ccebf0fccbd50070ecc02ddc74a07ea5c987fbab35aba"
     },
     {
       "source": "services/vault/src/vault.ts",
       "emitted": "web/assets/js/services/vault/src/vault.js",
-      "sourceSha256": "871a7dc56fbd24ca1958bfd90732d7aa40bb507a76aa1ea6bdc6a605777f9e3d"
+      "sourceSha256": "a9f464dedb34d9d33a4712902d1400b3d1fac41fc3c0c8067a84eec9bfac145f"
     },
     {
       "source": "profiles/address/src/address.ts",
