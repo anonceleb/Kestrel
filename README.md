@@ -119,7 +119,11 @@ tools/
   privacy-lint/    CI gate: core purity, zone-3 shape, log hygiene across packages/services/adapters/profiles
   demo/            narrated walkthrough
   web-build/       emits web/assets/js from the real sources; shim selftest against node:crypto gates the emit
-spec/CFP-v0.x.md   the pilot-scoped interface note — submitted nowhere
+spec/
+  CFP-v0.x.md          the pilot-scoped interface note — submitted nowhere
+  CFP-beckn-binding.md how a grant rides inside existing Beckn messages
+                       (Stop.authorization + Fulfillment.tags) with no core
+                       spec change — draft, raised with no one yet
 web/               the browser demo — six pages driving the modules under web/assets/js
 ```
 
