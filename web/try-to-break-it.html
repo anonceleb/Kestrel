@@ -110,7 +110,7 @@ carrier-identity binding, depot connectivity. Provenance:
 </div>
 
 <script type="module">
-import { Registry, newKeyPair, signRequest } from "./assets/js/packages/registry/src/signing.js";
+import { Registry, newKeyPair, signRequest, registerOp } from "./assets/js/packages/registry/src/signing.js";
 import { Vault } from "./assets/js/services/vault/src/vault.js";
 import { Kms, seal, open } from "./assets/js/packages/crypto/src/envelope.js";
 import { AuditLog, ConsentLedger, cohortSize, K_ANON_FLOOR } from "./assets/js/packages/core/src/core.js";
@@ -126,7 +126,7 @@ const registry = new Registry({ subscriberId: FAC, role: "facilitator", keyId: "
   publicKey: facKeys.publicKey, tier: 3, status: "active" });
 const facAuth = (body) => ({ envelope: signRequest(FAC, "k1", facKeys.privateKey, body), body });
 const lspP = { subscriberId: LSP, role: "operator", keyId: "k1", publicKey: lspKeys.publicKey, tier: 2, status: "active" };
-registry.register(lspP, facAuth(lspP));
+registry.register(lspP, facAuth(registerOp(lspP)));
 
 const consent = new ConsentLedger(), audit = new AuditLog();
 const capSecret = randomBytes(32);
@@ -207,7 +207,7 @@ const attacks = {
   async nonfac() {
     const evil = { subscriberId: "evil.example", role: "merchant", keyId: "k1",
       publicKey: newKeyPair().publicKey, tier: 1, status: "active" };
-    const auth = { envelope: signRequest(LSP, "k1", lspKeys.privateKey, evil), body: evil };
+    const auth = { envelope: signRequest(LSP, "k1", lspKeys.privateKey, registerOp(evil)), body: registerOp(evil) };
     try {
       registry.register(evil, auth); // signed by the operator, not a facilitator
       return `BUG: non-facilitator write accepted`;

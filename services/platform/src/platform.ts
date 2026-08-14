@@ -26,6 +26,7 @@ import {
   attenuate,
   attenuateToReturn,
   attenuateToReattempt,
+  verify as verifyCap,
   DEFAULT_MAX_ATTEMPTS,
   mint,
   NonceLedger,
@@ -315,6 +316,14 @@ export class Platform {
    * validity window.
    */
   createReturn(originatingCap: Capability, actorId: string, subjectRef: string): Capability {
+    // [Gap fix — P0-2] Verify the parent's MAC before minting anything from
+    // it. attenuate()/attenuateToReturn() re-MAC whatever caveats they are
+    // handed, so without this a caller holding a legitimate grant could pass
+    // back inflated caveats and receive a *validly signed* child that grants
+    // more than the original ever did — defeating the whole "an exception
+    // path can never exceed the originating fulfilment" claim.
+    verifyCap(this.#capSecret, originatingCap);
+
     const original = this.#consent.find(originatingCap.caveats.consentRef);
     if (!original) throw new UnknownCapability("no consent record for the originating grant");
     if (original.subject !== subjectRef) {
@@ -362,6 +371,14 @@ export class Platform {
    * INV-15.
    */
   reattemptDelivery(originatingCap: Capability, actorId: string, subjectRef: string): Capability {
+    // [Gap fix — P0-2] Verify the parent's MAC before minting anything from
+    // it. attenuate()/attenuateToReturn() re-MAC whatever caveats they are
+    // handed, so without this a caller holding a legitimate grant could pass
+    // back inflated caveats and receive a *validly signed* child that grants
+    // more than the original ever did — defeating the whole "an exception
+    // path can never exceed the originating fulfilment" claim.
+    verifyCap(this.#capSecret, originatingCap);
+
     const original = this.#consent.find(originatingCap.caveats.consentRef);
     if (!original) throw new UnknownCapability("no consent record for the originating grant");
     if (original.subject !== subjectRef) {
@@ -411,6 +428,14 @@ export class Platform {
    * and expiry are carried over unchanged.
    */
   redirectDelivery(cap: Capability, newChannelKind: Caveats["channelKind"], subjectRef: string): Capability {
+    // [Gap fix — P0-2] Verify the parent's MAC before minting anything from
+    // it. attenuate()/attenuateToReturn() re-MAC whatever caveats they are
+    // handed, so without this a caller holding a legitimate grant could pass
+    // back inflated caveats and receive a *validly signed* child that grants
+    // more than the original ever did — defeating the whole "an exception
+    // path can never exceed the originating fulfilment" claim.
+    verifyCap(this.#capSecret, cap);
+
     const original = this.#consent.find(cap.caveats.consentRef);
     if (!original) throw new UnknownCapability("no consent record for this capability");
     if (original.subject !== subjectRef) {
@@ -449,6 +474,11 @@ export class Platform {
       throw new NotAuthorized(`capability ${cap.id} does not belong to subject ${subjectRef}`);
     }
     this.#nonces.revoke(cap.id);
+    // [Gap fix — P0-3] Revoking Platform's own nonce ledger does not stop
+    // Vault: the two services hold separate ledgers and Vault consults the
+    // *consent* record. Without this line a refunded grant still decrypted
+    // and routed — the refund looked effective and was not.
+    this.#consent.revoke(consentRef);
     this.#consent.append({
       subject: original.subject,
       grantedTo: actorId,

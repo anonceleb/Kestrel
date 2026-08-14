@@ -10,7 +10,7 @@ import { randomBytes } from "node:crypto";
 import { mint, attenuate, verify, type FulfilmentGrant } from "../../../packages/capability/src/capability.ts";
 import { verify as verifyImportedAgain } from "../../../packages/capability/src/capability.ts";
 import { Kms } from "../../../packages/crypto/src/envelope.ts";
-import { Registry, newKeyPair, signRequest } from "../../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, registerOp } from "../../../packages/registry/src/signing.ts";
 import { NonceLedger } from "../../../packages/capability/src/capability.ts";
 import { AuditLog, ConsentLedger } from "../../../packages/core/src/core.ts";
 import { Vault } from "../../../services/vault/src/vault.ts";
@@ -59,7 +59,10 @@ test("end-to-end: mint -> attenuate -> redeem a contact grant through Vault/Plat
 
   const driverKeys = newKeyPair();
   const driver = { subscriberId: "driver-app.example", role: "merchant" as const, keyId: "k1", publicKey: driverKeys.publicKey, tier: 2 as const, status: "active" as const };
-  registry.register(driver, { envelope: signRequest("facilitator.network.example", "fk1", facKeys.privateKey, driver), body: driver });
+  registry.register(driver, {
+    envelope: signRequest("facilitator.network.example", "fk1", facKeys.privateKey, registerOp(driver)),
+    body: registerOp(driver),
+  });
 
   const riderContact: ContactPayload = { e164: "+15551234567" };
   const pairwiseId = vault.issuePairwiseId(Buffer.alloc(32, 3), "driver-app.example");

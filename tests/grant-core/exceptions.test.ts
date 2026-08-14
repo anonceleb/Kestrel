@@ -12,7 +12,7 @@ import {
   verify,
 } from "../../packages/capability/src/capability.ts";
 import { NotAuthorized } from "../../services/platform/src/platform.ts";
-import { newKeyPair } from "../../packages/registry/src/signing.ts";
+import { newKeyPair, registerOp } from "../../packages/registry/src/signing.ts";
 import { randomUUID } from "node:crypto";
 import { harness, grantOnce } from "./harness.ts";
 
@@ -261,7 +261,7 @@ test("attenuation narrows authority but does not transfer it — a non-consented
     subscriberId: "courier.example", role: "operator" as const, keyId: "k1",
     publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
   };
-  h.registry.register(courier, h.authFor(courier));
+  h.registry.register(courier, h.authFor(registerOp(courier)));
 
   // A validly narrowed grant: strictly weaker, correct MAC, not expired.
   const handedOn = attenuate(h.capSecret, capability, { maxUnits: 1, maxAttempts: 1 },
@@ -287,7 +287,7 @@ test("INV-37: a rejected redemption never burns the grant — no participant can
     subscriberId: "stranger.example", role: "operator" as const, keyId: "k1",
     publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
   };
-  h.registry.register(stranger, h.authFor(stranger));
+  h.registry.register(stranger, h.authFor(registerOp(stranger)));
 
   // Three rejected attempts by a registered-but-not-consented participant.
   for (let i = 0; i < 3; i++) {

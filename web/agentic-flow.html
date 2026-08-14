@@ -153,7 +153,7 @@ request carrying a <code>FulfilmentGrant</code> instead — minted live by this 
 <script type="module">
 import { mint, attenuate, verify, NonceLedger, AttenuationWidened, CapabilityBurned } from "./assets/js/packages/capability/src/capability.js";
 import { derivePairwiseId, newRootSecret } from "./assets/js/packages/identity/src/pairwise.js";
-import { Registry, newKeyPair, signRequest } from "./assets/js/packages/registry/src/signing.js";
+import { Registry, newKeyPair, signRequest, registerOp } from "./assets/js/packages/registry/src/signing.js";
 import { Vault } from "./assets/js/services/vault/src/vault.js";
 import { Kms } from "./assets/js/packages/crypto/src/envelope.js";
 import { AuditLog, ConsentLedger } from "./assets/js/packages/core/src/core.js";
@@ -217,7 +217,7 @@ function setup() {
   for (const id of [AGENT, MERCHANT, COURIER]) {
     const p = { subscriberId: id, role: "operator", keyId: "k1",
                 publicKey: newKeyPair().publicKey, tier: 2, status: "active" };
-    registry.register(p, auth(p));
+    registry.register(p, auth(registerOp(p)));
   }
   const consent = new ConsentLedger(), audit = new AuditLog();
   const capSecret = randomBytes(32);

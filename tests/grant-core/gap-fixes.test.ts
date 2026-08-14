@@ -9,7 +9,7 @@ import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { Registry, newKeyPair, signRequest, WriteNotAuthorized } from "../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, WriteNotAuthorized, ParticipantUnknown, registerOp, suspendOp, eraseOp } from "../../packages/registry/src/signing.ts";
 import {
   demoOnlyInsecurePolicyStore,
   DemoPolicyNotAllowed,
@@ -43,36 +43,73 @@ test("INV-29: Registry.register()/suspend() require a facilitator-signed credent
 
   // A credential signed by a non-facilitator (even if registered) is rejected.
   const impostorKeys = newKeyPair();
-  registry.register(
-    { subscriberId: "merchant.impostor.example", role: "merchant", keyId: "k1", publicKey: impostorKeys.publicKey, tier: 3, status: "active" },
-    { envelope: signRequest("facilitator.a.example", "k1", genesis.privateKey, newParticipant), body: newParticipant },
-  );
-  const impostorEnv = signRequest("merchant.impostor.example", "k1", impostorKeys.privateKey, newParticipant);
+  const impostor = {
+    subscriberId: "merchant.impostor.example", role: "merchant" as const, keyId: "k1",
+    publicKey: impostorKeys.publicKey, tier: 3 as const, status: "active" as const,
+  };
+  registry.register(impostor, {
+    envelope: signRequest("facilitator.a.example", "k1", genesis.privateKey, registerOp(impostor)),
+    body: registerOp(impostor),
+  });
+  const impostorEnv = signRequest("merchant.impostor.example", "k1", impostorKeys.privateKey, registerOp(newParticipant));
   assert.throws(
-    () => registry.register(newParticipant, { envelope: impostorEnv, body: newParticipant }),
+    () => registry.register(newParticipant, { envelope: impostorEnv, body: registerOp(newParticipant) }),
     WriteNotAuthorized,
   );
 
   // A genuine facilitator-signed credential succeeds.
-  const env = signRequest("facilitator.a.example", "k1", genesis.privateKey, newParticipant);
-  registry.register(newParticipant, { envelope: env, body: newParticipant });
+  const env = signRequest("facilitator.a.example", "k1", genesis.privateKey, registerOp(newParticipant));
+  registry.register(newParticipant, { envelope: env, body: registerOp(newParticipant) });
   assert.equal(registry.lookup("merchant.rogue.example").status, "active");
 
   // suspend() is gated the same way.
-  const suspendBody = { subscriberId: "merchant.rogue.example" };
+  const susp = suspendOp("merchant.rogue.example");
   assert.throws(
-    () => registry.suspend("merchant.rogue.example", { envelope: signRequest("merchant.impostor.example", "k1", impostorKeys.privateKey, suspendBody), body: suspendBody }),
+    () => registry.suspend("merchant.rogue.example", { envelope: signRequest("merchant.impostor.example", "k1", impostorKeys.privateKey, susp), body: susp }),
     WriteNotAuthorized,
   );
-  registry.suspend("merchant.rogue.example", { envelope: signRequest("facilitator.a.example", "k1", genesis.privateKey, suspendBody), body: suspendBody });
+  registry.suspend("merchant.rogue.example", { envelope: signRequest("facilitator.a.example", "k1", genesis.privateKey, susp), body: susp });
   assert.equal(registry.lookup("merchant.rogue.example").status, "suspended");
 });
 
 test("INV-29b: Vault.erase() requires the same facilitator-signed credential", () => {
   const h = harness();
   assert.throws(() => h.vault.erase("sub_1", undefined as never), WriteNotAuthorized);
-  const erased = h.vault.erase("sub_1", h.authFor({ subjectRef: "sub_1" }));
+  const erased = h.vault.erase("sub_1", h.authFor(eraseOp("sub_1")));
   assert.deepEqual(erased, ["rec_1"]);
+});
+
+/**
+ * [Gap fix — P0-1] INV-29 only ever proved "a facilitator signed something."
+ * The credential was never bound to the operation, so a leftover signature
+ * over one body could admit a different participant — including admitting an
+ * attacker as a facilitator, which compromises every other registry-gated
+ * control, Vault.erase() among them.
+ */
+test("INV-29c: a facilitator credential is bound to the exact operation it authorizes", () => {
+  const h = harness();
+  const decoy = {
+    subscriberId: "decoy.example", role: "operator" as const, keyId: "k1",
+    publicKey: newKeyPair().publicKey, tier: 1 as const, status: "active" as const,
+  };
+  const attacker = {
+    subscriberId: "attacker.example", role: "facilitator" as const, keyId: "k1",
+    publicKey: newKeyPair().publicKey, tier: 3 as const, status: "active" as const,
+  };
+  // A valid credential for the decoy cannot admit the attacker.
+  assert.throws(() => h.registry.register(attacker, h.authFor(registerOp(decoy))), WriteNotAuthorized);
+  assert.throws(() => h.registry.lookup("attacker.example"), ParticipantUnknown);
+
+  // Verb confusion is closed too: a suspend credential is not a register
+  // credential, even when the target names match.
+  assert.throws(
+    () => h.registry.register({ ...decoy, subscriberId: "x.example" }, h.authFor(suspendOp("x.example"))),
+    WriteNotAuthorized,
+  );
+
+  // And an erase credential for one subject cannot erase another.
+  assert.throws(() => h.vault.erase("sub_1", h.authFor(eraseOp("someone-else"))), WriteNotAuthorized);
+  assert.deepEqual(h.vault.erase("sub_1", h.authFor(eraseOp("sub_1"))), ["rec_1"]);
 });
 
 test("INV-30: the demo-only default policy is loudly gated behind CFP_ALLOW_DEMO_POLICY", () => {
@@ -176,10 +213,11 @@ test("INV-33: the consent ledger is keyed by pairwise reference — Platform can
 
   // Register a second counterparty under the same harness's registry/vault.
   const mk2 = newKeyPair();
-  h.registry.register(
-    { subscriberId: "counterparty-two.example", role: "merchant", keyId: "k1", publicKey: mk2.publicKey, tier: 2, status: "active" },
-    h.authFor({ subscriberId: "counterparty-two.example", role: "merchant", keyId: "k1", publicKey: mk2.publicKey, tier: 2, status: "active" }),
-  );
+  const two = {
+    subscriberId: "counterparty-two.example", role: "merchant" as const, keyId: "k1",
+    publicKey: mk2.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(two, h.authFor(registerOp(two)));
 
   const root = newRootSecret();
   // The *subject-side* pairwise reference each grant is filed under — derived

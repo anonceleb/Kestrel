@@ -54,8 +54,15 @@ clause (§8), D-2 is the depot-time / rural-precision open question (§9).</p>
 <p>Was: <code>Registry.register()</code>/<code>suspend()</code> and <code>Vault.erase()</code> had
 no caller-identity check — anyone holding a reference could admit, suspend, or erase. Now: both
 require a signed <code>WriteAuth</code> from an already-registered, active facilitator, verified
-the same way every inter-participant request is.
-<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-29, INV-29b</a></span></p>
+the same way every inter-participant request is.</p>
+<p><b>Strengthened since:</b> the first version of this fix proved only that <em>a facilitator had
+signed something</em> — the credential was never bound to the operation, so a leftover signature
+over one participant could admit a different one, including admitting an attacker as a
+<code>facilitator</code> and thereby compromising every other registry-gated control,
+<code>Vault.erase()</code> among them. The signed body now carries both the verb and the object
+(<code>registerOp</code> / <code>suspendOp</code> / <code>eraseOp</code>), so a credential authorizes
+exactly one operation on exactly one target.
+<span class="t"><a href="https://github.com/anonceleb/Kestrel/blob/main/tests/grant-core/gap-fixes.test.ts">gap-fixes.test.ts · INV-29, INV-29b, INV-29c</a></span></p>
 
 <h3>2. Self-signed default disclosure policy <span class="st">— closed</span></h3>
 <p>Was: <code>defaultPolicyStore()</code> signed the policy with a throwaway key nobody else held.

@@ -188,8 +188,42 @@ export function signRequest(
   return { ...base, signature: signature.toString("base64") };
 }
 
-/** Registry write credential: a signed envelope from a facilitator, over the body being written. */
+/**
+ * The privileged operations a facilitator credential can authorize.
+ *
+ * [Gap fix] These exist because `#requireFacilitator` used to verify only
+ * that *some* facilitator had signed *something*. The envelope's digest was
+ * checked against `auth.body`, but nothing checked that `auth.body` was the
+ * thing being written — so a leftover credential signed over one
+ * participant could admit an entirely different one, including admitting an
+ * attacker as a `facilitator` and thereby compromising every other
+ * registry-gated control, `Vault.erase()` included.
+ *
+ * The `op` discriminator is part of the signed body on purpose. Without it,
+ * a credential signed to suspend `x` could be replayed to *register* a
+ * participant `{ subscriberId: "x" }`, since the bodies would match.
+ * Authority is now bound to both the verb and the object.
+ */
+export type WriteOperation =
+  | { op: "register"; participant: Participant }
+  | { op: "suspend"; subscriberId: string }
+  | { op: "erase"; subjectRef: string };
+
+export const registerOp = (participant: Participant): WriteOperation => ({ op: "register", participant });
+export const suspendOp = (subscriberId: string): WriteOperation => ({ op: "suspend", subscriberId });
+export const eraseOp = (subjectRef: string): WriteOperation => ({ op: "erase", subjectRef });
+
+/** Registry write credential: a signed envelope from a facilitator, over the exact operation being performed. */
 export type WriteAuth = { envelope: SignedEnvelope; body: unknown };
+
+/** Throws unless `auth.body` is byte-identical to the operation actually being performed. */
+export function assertAuthorizesOperation(auth: WriteAuth, expected: WriteOperation): void {
+  if (canonical(auth.body) !== canonical(expected)) {
+    throw new WriteNotAuthorized(
+      `credential is signed over a different operation than the one requested (expected ${expected.op})`,
+    );
+  }
+}
 
 export class Registry {
   #participants = new Map<string, Participant>();
@@ -227,8 +261,9 @@ export class Registry {
   }
 
   /** Requires a signed credential from an active facilitator. Throws WriteNotAuthorized otherwise. */
-  #requireFacilitator(auth: WriteAuth, now = Math.floor(Date.now() / 1000)): Participant {
+  #requireFacilitator(auth: WriteAuth, expected: WriteOperation, now = Math.floor(Date.now() / 1000)): Participant {
     if (!auth) throw new WriteNotAuthorized("registry write requires a facilitator-signed credential");
+    assertAuthorizesOperation(auth, expected);
     const signer = this.#participants.get(auth.envelope.subscriberId);
     if (!signer) throw new WriteNotAuthorized(`unknown signer ${auth.envelope.subscriberId}`);
     if (signer.status !== "active") throw new WriteNotAuthorized(`signer ${signer.subscriberId} is suspended`);
@@ -241,7 +276,7 @@ export class Registry {
 
   /** [Gap fix] Now requires a facilitator-signed WriteAuth over `p`. */
   register(p: Participant, auth: WriteAuth): void {
-    this.#requireFacilitator(auth);
+    this.#requireFacilitator(auth, registerOp(p));
     this.#participants.set(p.subscriberId, p);
   }
 
@@ -253,7 +288,7 @@ export class Registry {
 
   /** [Gap fix] Now requires a facilitator-signed WriteAuth over `{ subscriberId }`. */
   suspend(subscriberId: string, auth: WriteAuth): void {
-    this.#requireFacilitator(auth);
+    this.#requireFacilitator(auth, suspendOp(subscriberId));
     const p = this.lookup(subscriberId);
     this.#participants.set(subscriberId, { ...p, status: "suspended" });
     this.#directory?.publishRevocation({

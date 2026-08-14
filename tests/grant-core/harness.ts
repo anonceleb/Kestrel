@@ -6,7 +6,7 @@
 import { randomBytes } from "node:crypto";
 import { Kms } from "../../packages/crypto/src/envelope.ts";
 import { newRootSecret } from "../../packages/identity/src/pairwise.ts";
-import { Registry, newKeyPair, signRequest, type WriteAuth } from "../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, registerOp, type WriteAuth } from "../../packages/registry/src/signing.ts";
 import { NonceLedger } from "../../packages/capability/src/capability.ts";
 import { AuditLog, ConsentLedger, type ConfidentialPayload, type RoutingPort } from "../../packages/core/src/core.ts";
 import { Vault } from "../../services/vault/src/vault.ts";
@@ -57,24 +57,15 @@ export function harness() {
   const platform = new Platform({ registry, consent, capSecret, policy: operatorPolicy() });
 
   const mk = newKeyPair();
-  registry.register(
-    {
-      subscriberId: "counterparty.example",
-      role: "merchant",
-      keyId: "k1",
-      publicKey: mk.publicKey,
-      tier: 2,
-      status: "active",
-    },
-    authFor({
-      subscriberId: "counterparty.example",
-      role: "merchant",
-      keyId: "k1",
-      publicKey: mk.publicKey,
-      tier: 2,
-      status: "active",
-    }),
-  );
+  const counterparty = {
+    subscriberId: "counterparty.example",
+    role: "merchant",
+    keyId: "k1",
+    publicKey: mk.publicKey,
+    tier: 2,
+    status: "active",
+  } as const;
+  registry.register(counterparty, authFor(registerOp(counterparty)));
 
   const root = newRootSecret();
   const pairwiseId = vault.issuePairwiseId(root, "counterparty.example");

@@ -116,9 +116,9 @@ plaintext-address path stays available as a fallback, so no participant must upg
 </div>
 
 <script type="module">
-import { Registry, newKeyPair, signRequest } from "./assets/js/packages/registry/src/signing.js";
+import { Registry, newKeyPair, signRequest, registerOp, eraseOp } from "./assets/js/packages/registry/src/signing.js";
 import { Vault } from "./assets/js/services/vault/src/vault.js";
-import { Kms } from "./assets/js/packages/crypto/src/envelope.js";
+import { Kms, open } from "./assets/js/packages/crypto/src/envelope.js";
 import { AuditLog, ConsentLedger } from "./assets/js/packages/core/src/core.js";
 import { mint, NonceLedger } from "./assets/js/packages/capability/src/capability.js";
 import { newRootSecret } from "./assets/js/packages/identity/src/pairwise.js";
@@ -133,7 +133,7 @@ const DENSITY = new FlatDensity(200);
 
 const $ = (id) => document.getElementById(id);
 const j = (v) => JSON.stringify(v, null, 2);
-let registry, facKeys, vault, consent, audit, grant, label, capSecret, recordId = "rec-0001";
+let registry, facKeys, vault, consent, audit, grant, label, capSecret, kms, recordId = "rec-0001";
 const FAC = "facilitator.cfp.example", LSP = "lsp.indiapost.example";
 const facAuth = (body) => ({ envelope: signRequest(FAC, "k1", facKeys.privateKey, body), body });
 const address = { line1: "14 Harbour Lane", line2: "Flat 3", locality: "Calder",
@@ -146,7 +146,7 @@ $("s1").onclick = () => {
   const lspKeys = newKeyPair();
   const p = { subscriberId: LSP, role: "operator", keyId: "k1",
     publicKey: lspKeys.publicKey, tier: 2, status: "active" };
-  const auth = facAuth(p);
+  const auth = facAuth(registerOp(p));
   registry.register(p, auth);
   $("o1").textContent =
 `signed envelope (facilitator → registry):
@@ -159,7 +159,8 @@ registry.lookup("${LSP}").status = "${registry.lookup(LSP).status}"`;
 $("s2").onclick = () => {
   consent = new ConsentLedger(); audit = new AuditLog();
   capSecret = randomBytes(32);
-  vault = new Vault({ kms: new Kms(), audit, consent, nonces: new NonceLedger(),
+  kms = new Kms();
+  vault = new Vault({ kms, audit, consent, nonces: new NonceLedger(),
     capSecret, routing: new IndiaPostRouting(), registry });
   const root = newRootSecret();
   const pid = vault.issuePairwiseId(root, LSP);
@@ -227,14 +228,15 @@ $("s6").onclick = async () => {
 };
 
 $("s7").onclick = () => {
-  const body = { subjectRef: "subject-privately-known-to-vault" };
-  const erased = vault.erase("subject-privately-known-to-vault", facAuth(body));
+  const erased = vault.erase("subject-privately-known-to-vault", facAuth(eraseOp("subject-privately-known-to-vault")));
+  // Read it the hardest possible way: holding the ciphertext AND the KMS.
   let read;
-  try { read = j(vault.tryRead(recordId)); }
+  try { read = j(JSON.parse(open(kms, "indiapost", recordId, vault.ciphertextFor(recordId)))); }
   catch (e) { read = `${e.constructor.name}: ${e.message}`; }
   $("o6").innerHTML =
 `erase(subjectRef, facilitatorAuth) → shredded ${JSON.stringify(erased)}
-tryRead("${recordId}") → <span class="err">${read}</span>`;
+open(kms, ciphertextFor("${recordId}")) → <span class="err">${read}</span>
+   ← even with the ciphertext and the KMS in hand, the salt is gone`;
 };
 </script>
 </body>

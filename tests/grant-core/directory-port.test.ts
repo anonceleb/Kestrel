@@ -10,7 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { InProcessDirectory } from "../../packages/directory/src/directory.ts";
 import { OperatorKeyring } from "../../packages/labels/src/keyring.ts";
-import { Registry, newKeyPair, signRequest } from "../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, registerOp, suspendOp } from "../../packages/registry/src/signing.ts";
 import { NonceLedger } from "../../packages/capability/src/capability.ts";
 import { PolicyStore, signPolicy } from "../../packages/policy/src/policy.ts";
 import { digestOf } from "../../packages/registry/src/signing.ts";
@@ -44,9 +44,9 @@ test("INV-35: Registry.suspend() publishes a subscriber revocation through the d
 
   const mk = newKeyPair();
   const merchant = { subscriberId: "merchant.dir.example", role: "merchant" as const, keyId: "k1", publicKey: mk.publicKey, tier: 2 as const, status: "active" as const };
-  registry.register(merchant, authFor(merchant));
+  registry.register(merchant, authFor(registerOp(merchant)));
 
-  registry.suspend("merchant.dir.example", authFor({ subscriberId: "merchant.dir.example" }));
+  registry.suspend("merchant.dir.example", authFor(suspendOp("merchant.dir.example")));
 
   const revocations = directory.lookupRevocations("subscriber");
   assert.ok(revocations.some((r) => r.subject === "merchant.dir.example"));

@@ -70,7 +70,7 @@ import { CallRelay }          from "profiles/contact/src/contact.js";       <spa
 </div>
 
 <script type="module">
-import { Registry, newKeyPair, signRequest } from "./assets/js/packages/registry/src/signing.js";
+import { Registry, newKeyPair, signRequest, registerOp } from "./assets/js/packages/registry/src/signing.js";
 import { Vault } from "./assets/js/services/vault/src/vault.js";
 import { Kms } from "./assets/js/packages/crypto/src/envelope.js";
 import { AuditLog, ConsentLedger } from "./assets/js/packages/core/src/core.js";
@@ -90,7 +90,7 @@ $("s1").onclick = () => {
     publicKey: facKeys.publicKey, tier: 3, status: "active" });
   const p = { subscriberId: MOBILITY, role: "platform", keyId: "k1",
     publicKey: newKeyPair().publicKey, tier: 2, status: "active" };
-  registry.register(p, { envelope: signRequest(FAC, "k1", facKeys.privateKey, p), body: p });
+  registry.register(p, { envelope: signRequest(FAC, "k1", facKeys.privateKey, registerOp(p)), body: registerOp(p) });
 
   const consent = new ConsentLedger();
   const capSecret = randomBytes(32);

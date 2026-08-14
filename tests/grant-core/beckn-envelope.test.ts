@@ -8,21 +8,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import {
-  Registry,
-  newKeyPair,
-  signRequest,
-  digestOf,
-  canonical,
-  SignatureInvalid,
-} from "../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, digestOf, canonical, SignatureInvalid, registerOp } from "../../packages/registry/src/signing.ts";
 import { genesisRegistry } from "./harness.ts";
 
 test("INV-34: envelope keyId is {subscriberId}|{keyId}|ed25519-shaped", () => {
   const { registry, authFor } = genesisRegistry();
   const mk = newKeyPair();
   const body = { subscriberId: "merchant.example", role: "merchant" as const, keyId: "k1", publicKey: mk.publicKey, tier: 2 as const, status: "active" as const };
-  registry.register(body, authFor(body));
+  registry.register(body, authFor(registerOp(body)));
 
   const req = { hello: "world" };
   const env = signRequest("merchant.example", "k1", mk.privateKey, req);
@@ -54,7 +47,7 @@ test("INV-34: a tampered request body fails verification", () => {
   const { registry, authFor } = genesisRegistry();
   const mk = newKeyPair();
   const p = { subscriberId: "merchant.tamper.example", role: "merchant" as const, keyId: "k1", publicKey: mk.publicKey, tier: 2 as const, status: "active" as const };
-  registry.register(p, authFor(p));
+  registry.register(p, authFor(registerOp(p)));
 
   const req = { units: 1 };
   const env = signRequest("merchant.tamper.example", "k1", mk.privateKey, req);
@@ -66,7 +59,7 @@ test("INV-34: a tampered digest fails verification even against the original bod
   const { registry, authFor } = genesisRegistry();
   const mk = newKeyPair();
   const p = { subscriberId: "merchant.tamper2.example", role: "merchant" as const, keyId: "k1", publicKey: mk.publicKey, tier: 2 as const, status: "active" as const };
-  registry.register(p, authFor(p));
+  registry.register(p, authFor(registerOp(p)));
 
   const req = { units: 1 };
   const env = signRequest("merchant.tamper2.example", "k1", mk.privateKey, req);

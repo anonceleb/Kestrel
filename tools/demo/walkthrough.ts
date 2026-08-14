@@ -5,7 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { Kms } from "../../packages/crypto/src/envelope.ts";
 import { newRootSecret } from "../../packages/identity/src/pairwise.ts";
-import { Registry, newKeyPair, signRequest } from "../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, registerOp } from "../../packages/registry/src/signing.ts";
 import { NonceLedger } from "../../packages/capability/src/capability.ts";
 import { AuditLog, ConsentLedger } from "../../packages/core/src/core.ts";
 import { Vault } from "../../services/vault/src/vault.ts";
@@ -49,7 +49,7 @@ const privateKeys: Record<string, string> = {};
 for (const id of ["alba-goods.example", "corvid-tools.example"]) {
   const kp = newKeyPair();
   const p = { subscriberId: id, role: "merchant" as const, keyId: "k1", publicKey: kp.publicKey, tier: 2 as const, status: "active" as const };
-  registry.register(p, facilitatorAuth(p));
+  registry.register(p, facilitatorAuth(registerOp(p)));
   privateKeys[id] = kp.privateKey;
   line(`    registered ${id}`);
 }

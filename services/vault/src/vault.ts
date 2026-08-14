@@ -45,7 +45,14 @@ import {
 import { OperatorKeyring, type OperatorPublicKey } from "../../../packages/labels/src/keyring.ts";
 import { mintLabel, type SignedLabel } from "../../../packages/labels/src/label.ts";
 import { derivePairwiseId, type RootSecret } from "../../../packages/identity/src/pairwise.ts";
-import { Registry, WriteNotAuthorized, type WriteAuth } from "../../../packages/registry/src/signing.ts";
+import {
+  Registry,
+  WriteNotAuthorized,
+  assertAuthorizesOperation,
+  eraseOp,
+  type WriteAuth,
+  type WriteOperation,
+} from "../../../packages/registry/src/signing.ts";
 
 export class AuditPrecondition extends Error {}
 export class PurposeMismatch extends Error {}
@@ -214,7 +221,7 @@ export class Vault {
    * every derived ciphertext dies with it.
    */
   erase(subjectRef: string, auth: WriteAuth): string[] {
-    this.#requireFacilitator(auth);
+    this.#requireFacilitator(auth, eraseOp(subjectRef));
     const erased: string[] = [];
     for (const [id, r] of this.#records) {
       if (r.subjectRef === subjectRef) {
@@ -225,8 +232,9 @@ export class Vault {
     return erased;
   }
 
-  #requireFacilitator(auth: WriteAuth): void {
+  #requireFacilitator(auth: WriteAuth, expected: WriteOperation): void {
     if (!auth) throw new WriteNotAuthorized("vault write requires a facilitator-signed credential");
+    assertAuthorizesOperation(auth, expected);
     const signer = this.#registry.verify(auth.envelope, auth.body);
     if (signer.role !== "facilitator") {
       throw new WriteNotAuthorized(`signer ${signer.subscriberId} is not a facilitator`);
@@ -246,9 +254,24 @@ export class Vault {
     notifications.notify(rec.subjectRef, event);
   }
 
-  tryRead(recordId: string): ConfidentialPayload {
-    const r = this.#records.get(recordId)!;
-    return JSON.parse(open(this.#kms, r.tenantId, recordId, r.ciphertext));
+
+
+  /**
+   * Ciphertext for a record — never plaintext, and no key material.
+   *
+   * [Gap fix — P0-4] This replaces `tryRead()`, which was a public,
+   * unauthenticated `open()`: no grant, no actor, no audit record. Its
+   * existence made INV-4 ("no decryption path exists that skips the audit
+   * record") false as stated, because the invariant's test only proved
+   * `resolveUnaudited()` throws.
+   *
+   * Handing back ciphertext discloses nothing Zone 2 is not already
+   * entitled to hold, and it lets erasure be demonstrated the stronger way:
+   * a caller holding both the ciphertext *and* the KMS still cannot read a
+   * shredded record, because the per-record salt is gone.
+   */
+  ciphertextFor(recordId: string): Ciphertext | undefined {
+    return this.#records.get(recordId)?.ciphertext;
   }
 
   /**

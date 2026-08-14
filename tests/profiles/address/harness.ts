@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Kms } from "../../../packages/crypto/src/envelope.ts";
-import { Registry, newKeyPair, signRequest, type WriteAuth } from "../../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, type WriteAuth, registerOp } from "../../../packages/registry/src/signing.ts";
 import { NonceLedger } from "../../../packages/capability/src/capability.ts";
 import { AuditLog, ConsentLedger } from "../../../packages/core/src/core.ts";
 import { Vault } from "../../../services/vault/src/vault.ts";
@@ -42,7 +42,7 @@ export function addressHarness() {
     subscriberId: "seller.meridia.example", role: "merchant" as const, keyId: "k1",
     publicKey: mk.publicKey, tier: 2 as const, status: "active" as const,
   };
-  registry.register(participant, authFor(participant));
+  registry.register(participant, authFor(registerOp(participant)));
 
   const address: AddressPayload = { line1: "14 Harbour Lane", locality: "Calder", postcode: "4820" };
   const pairwiseId = vault.issuePairwiseId(Buffer.alloc(32, 7), "seller.meridia.example");

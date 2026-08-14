@@ -9,7 +9,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { Kms } from "../../../packages/crypto/src/envelope.ts";
-import { Registry, newKeyPair, signRequest } from "../../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, registerOp } from "../../../packages/registry/src/signing.ts";
 import { NonceLedger } from "../../../packages/capability/src/capability.ts";
 import { AuditLog, ConsentLedger } from "../../../packages/core/src/core.ts";
 import { Vault } from "../../../services/vault/src/vault.ts";
@@ -105,8 +105,8 @@ test("interop: india-post proofs only against a signed registry attestation, cap
   const issuer = newKeyPair();
   const issuerParticipant = { subscriberId: "issuer.gramin-dak-sevak.example", role: "operator" as const, keyId: "k1", publicKey: issuer.publicKey, tier: 2 as const, status: "active" as const };
   registry.register(issuerParticipant, {
-    envelope: signRequest("facilitator.network.example", "fk1", facKeys.privateKey, issuerParticipant),
-    body: issuerParticipant,
+    envelope: signRequest("facilitator.network.example", "fk1", facKeys.privateKey, registerOp(issuerParticipant)),
+    body: registerOp(issuerParticipant),
   });
   const body = { subjectRef: "sub_1", claim: "vouched-in-person" };
   const envelope = signRequest("issuer.gramin-dak-sevak.example", "k1", issuer.privateKey, body);

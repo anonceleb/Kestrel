@@ -9,7 +9,7 @@ import { randomBytes } from "node:crypto";
 
 import { Kms, RecordShredded, seal, open } from "../../packages/crypto/src/envelope.ts";
 import { newRootSecret, derivePairwiseId, linkabilityScore } from "../../packages/identity/src/pairwise.ts";
-import { signRequest, SignatureInvalid } from "../../packages/registry/src/signing.ts";
+import { signRequest, SignatureInvalid, registerOp, suspendOp, eraseOp } from "../../packages/registry/src/signing.ts";
 import { NonceLedger, CapabilityBurned, attenuate, AttenuationWidened, mint } from "../../packages/capability/src/capability.ts";
 import { cohortSize, visibleCoResidents, K_ANON_FLOOR } from "../../packages/core/src/core.ts";
 import { AuditPrecondition } from "../../services/vault/src/vault.ts";
@@ -68,10 +68,29 @@ test("INV-5: two counterparties cannot correlate the same subject", () => {
 
 test("INV-6: crypto-shred renders historical ciphertext permanently unreadable", () => {
   const h = harness();
-  assert.equal((h.vault.tryRead("rec_1") as NeutralPayload).secret, "s3cr3t-payload");
-  const erased = h.vault.erase("sub_1", h.authFor({ subjectRef: "sub_1" }));
+  // Stronger than the previous form, which went through Vault.tryRead(): the
+  // caller here holds the ciphertext AND the KMS and still cannot read the
+  // record once its salt is destroyed.
+  const box = h.vault.ciphertextFor("rec_1")!;
+  const read = () => JSON.parse(open(h.kms, "neutral-op", "rec_1", box)) as NeutralPayload;
+  assert.equal(read().secret, "s3cr3t-payload");
+  const erased = h.vault.erase("sub_1", h.authFor(eraseOp("sub_1")));
   assert.deepEqual(erased, ["rec_1"]);
-  assert.throws(() => h.vault.tryRead("rec_1"), RecordShredded);
+  assert.throws(read, RecordShredded);
+});
+
+test("INV-4b: Vault exposes no decryption path other than resolve()", () => {
+  const h = harness();
+  // The invariant INV-4 states is structural, so assert it structurally:
+  // tryRead() was a public, unauthenticated open() and is gone.
+  assert.equal((h.vault as Record<string, unknown>).tryRead, undefined);
+  const surface = [
+    ...Object.getOwnPropertyNames(Object.getPrototypeOf(h.vault)),
+  ].filter((m) => !["constructor", "resolve", "resolveUnaudited"].includes(m));
+  for (const m of surface) {
+    assert.ok(!/^(read|decrypt|peek|reveal|plaintext)/i.test(m),
+      `Vault.${m} looks like a decryption path outside resolve()`);
+  }
 });
 
 test("INV-7: no cohort below k=25 is ever exposed to a brand", () => {
@@ -92,7 +111,7 @@ test("INV-9: every inter-participant request is signed and verified (ONDC)", asy
   const env = signRequest("counterparty.example", "k1", h.mk.privateKey, req);
 
   assert.throws(() => h.registry.verify(env, { ...req, units: 900 }), SignatureInvalid);
-  h.registry.suspend("counterparty.example", h.authFor({ subscriberId: "counterparty.example" }));
+  h.registry.suspend("counterparty.example", h.authFor(suspendOp("counterparty.example")));
   assert.throws(() => h.registry.verify(env, req));
 });
 
