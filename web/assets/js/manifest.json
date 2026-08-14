@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-14T16:42:28.569Z",
+  "generatedAt": "2026-08-14T16:47:28.846Z",
   "selftestChecks": 63,
   "note": "Each emitted module is the named repo source with types stripped and import specifiers rewritten. node-crypto.js is the browser shim, verified against node:crypto by tools/web-build/build.ts before emit.",
   "files": [
     {
       "source": "packages/capability/src/capability.ts",
       "emitted": "web/assets/js/packages/capability/src/capability.js",
-      "sourceSha256": "de43aa5365b5c0de3c8858d63f754a31df547159003d8b108ca0395d6badf5e3"
+      "sourceSha256": "3e04bf5d130082e80426629524d742633edf80b5326a4172e7311e2d4e109587"
     },
     {
       "source": "packages/core/src/core.ts",

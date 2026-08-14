@@ -257,7 +257,7 @@ const TURNS = [
     let refused = "";
     try { attenuate(S.capSecret, S.merchantGrant, { maxUnits: 5 }, MERCHANT); }
     catch (e) { refused = `${e.constructor.name}("${e.message}")`; }
-    log(`\nturn 4 · the agent narrows it BEFORE handing it on\n  5→1 units · 3→2 attempts · direct→locker · 14d→48h\n  no round trip to the vault to do this.\n  the merchant then tries to widen it back:\n    ${refused}\n  narrowing is one-way, and the MAC covers every caveat.`);
+    log(`\nturn 4 · the agent narrows it BEFORE handing it on\n  5→1 units · 3→2 attempts · direct→locker · 14d→48h\n  NOTE: attenuate() takes the root HMAC, so today only the vault can\n  perform this narrowing — holder-side attenuation needs a chained\n  MAC construction that is not built. See spec §5.\n  the merchant then tries to widen it back:\n    ${refused}\n  narrowing is one-way, and the MAC covers every caveat.`);
     holdings(`${show(S.agentGrant)}`, `${show(S.merchantGrant)}`, `address (sealed)\nkeys\nnonce ledger`);
   },
   () => S.vault.resolve(S.merchantGrant, MERCHANT).then(({ routingCode }) => {

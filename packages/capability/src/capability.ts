@@ -13,14 +13,24 @@
  * generic magnitude cap (kilograms for a parcel, minutes for a call — the
  * profile decides the unit).
  *
- * Attenuation (Biscuit/macaroon semantics) lets a holder produce a strictly
- * weaker grant with no round trip to us and no ability to widen. Caveats
- * accumulate; they never relax.
+ * Attenuation produces a strictly weaker grant, with no ability to widen.
+ * Caveats accumulate; they never relax.
  *
- * **Attenuation narrows authority; it does not transfer it.** An earlier
- * revision of this docstring said a holder could pass a weaker grant
- * "downstream — e.g. merchant to courier," which overstates what the code
- * does. `Vault.resolve` requires the redeeming actor to be the party named
+ * **This is an operator-side API, not macaroon semantics.** `attenuate()`
+ * takes the same root HMAC `mint()` used, so only the vault/Platform can
+ * call it — a holder cannot narrow a grant it holds without a round trip,
+ * which is the opposite of what an earlier version of this docstring
+ * claimed by invoking Biscuit/macaroons. True holder-side attenuation needs
+ * a chained construction (`MAC' = HMAC(MAC, caveat)`) so narrowing requires
+ * only the current MAC, not the root key. That is not built. Until it is,
+ * the honest description is: the *narrowing rules* are macaroon-shaped; the
+ * *custody model* is not.
+ *
+ * **Attenuation also narrows authority without transferring it.** An
+ * earlier revision said a holder could pass a weaker grant "downstream —
+ * e.g. merchant to courier," which overstates what the code does twice
+ * over: the holder cannot narrow it (above), and the recipient could not
+ * redeem it if they could. `Vault.resolve` requires the redeeming actor to be the party named
  * in the grant's consent entry (`ConsentLedger.isValidFor` checks
  * `grantedTo === actor`), so a courier holding a validly narrowed grant
  * cannot redeem it. Two consequences, and both are worth stating plainly:
