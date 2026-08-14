@@ -98,19 +98,25 @@ request carrying a <code>FulfilmentGrant</code> instead — minted live by this 
 
 <section>
   <h2>The turn loop — an agent holding a capability, never an address</h2>
-  <p>The comparison above is a schema argument. This is the thing itself: seven turns, driven by
-  the repository's own <code>Vault</code>, registry, consent ledger and capability modules running
-  in this page. Watch the <b>holdings</b> row — neither the agent nor the merchant ever acquires an
-  address, and the grant the merchant receives is strictly weaker than the one the agent held.</p>
-  <p>Turn 7 is the one worth staying for. It shows the boundary of attenuation, which is a
-  property this project had described loosely until the loop was built: <b>narrowing a grant
+  <p>The comparison above is a schema argument. This is the thing itself: eight turns, driven by
+  the repository's own <code>Vault</code>, <code>Platform</code>, registry, consent ledger and
+  capability modules running in this page. Watch the <b>holdings</b> row — neither the agent nor
+  the merchant ever acquires an address, and the grant the merchant receives is strictly weaker
+  than the one the agent held.</p>
+  <p>Turns 7 and 8 are the ones worth staying for. Turn 7 shows the boundary of attenuation, which
+  is a property this project had described loosely until the loop was built: <b>narrowing a grant
   transfers no authority.</b> A fully registered courier holding a validly narrowed grant still
-  cannot redeem it, because redemption is bound to the actor the subject consented to.</p>
+  cannot redeem it, because redemption is bound to the actor the subject consented to — not to
+  whoever happens to be holding a valid-looking token. Turn 8 is the sanctioned path right next to
+  it: the same courier, the same narrowing, but with a real consent event
+  (<code>Platform.delegateFulfilment</code>) minted first. Same courier, same token shape,
+  opposite outcome — the difference between the two turns <em>is</em> the whole boundary between
+  "holding a capability" and "being authorised to use it."</p>
 
   <div class="turnbar">
     <button id="next">next turn ▸</button>
     <button id="reset">reset</button>
-    <span id="turnlabel" class="dim">turn 0 of 7 — not started</span>
+    <span id="turnlabel" class="dim">turn 0 of 8 — not started</span>
   </div>
 
   <div class="holdings">
@@ -124,10 +130,10 @@ request carrying a <code>FulfilmentGrant</code> instead — minted live by this 
   <p class="note">Every line above is produced by calling the shipped modules — including all three
   refusals, which are real thrown error classes (<code>AttenuationWidened</code>,
   <code>CapabilityBurned</code>) rather than strings written for the demo. The address is entered
-  once at turn 1 and is never readable again outside Zone 1. What turn 7 also shows is a gap:
-  multi-hop delegation needs its own consent event, and no forward-leg equivalent of
-  <code>createReturn()</code> exists yet — see
-  <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>.</p>
+  once at turn 1 and is never readable again outside Zone 1. Turn 8's
+  <code>Platform.delegateFulfilment</code> is the forward-leg counterpart of
+  <code>Platform.createReturn</code>'s reverse leg — see
+  <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §7.1</a>.</p>
 </section>
 
 <section>
@@ -160,6 +166,8 @@ import { AuditLog, ConsentLedger } from "./assets/js/packages/core/src/core.js";
 import { IndiaPostRouting, geoBucketFor } from "./assets/js/adapters/india-post/src/adapter.js";
 import { FlatDensity } from "./assets/js/profiles/address/src/precision.js";
 import { randomBytes } from "./assets/js/node-crypto.js";
+import { Platform } from "./assets/js/services/platform/src/platform.js";
+import { PolicyStore, signPolicy } from "./assets/js/packages/policy/src/policy.js";
 
 /* ------------------------------------------------ ACP comparison (above) */
 
@@ -223,7 +231,14 @@ function setup() {
   const capSecret = randomBytes(32);
   const vault = new Vault({ kms: new Kms(), audit, consent, nonces: new NonceLedger(),
     capSecret, routing: new IndiaPostRouting(), registry });
-  return { registry, consent, audit, capSecret, vault, root: newRootSecret() };
+  // A real, operator-signed policy — not the throwaway demoOnlyInsecurePolicyStore(), which
+  // refuses to construct outside CFP_ALLOW_DEMO_POLICY=1. Platform is needed here only for
+  // delegateFulfilment (turn 8); everything else in this page still drives Vault directly.
+  const policyKeys = newKeyPair();
+  const policy = new PolicyStore(policyKeys.publicKey,
+    signPolicy(policyKeys.privateKey, "operator-network-authority", { version: 1, acceptableAssurance: ["tier-2", "tier-3"] }));
+  const platform = new Platform({ registry, consent, capSecret, policy });
+  return { registry, consent, audit, capSecret, vault, platform, root: newRootSecret() };
 }
 
 const TURNS = [
@@ -269,14 +284,26 @@ const TURNS = [
     () => log(`\nturn 6 · REPLAY SUCCEEDED — that is a bug; please report it`),
     (e) => log(`\nturn 6 · the merchant replays the same grant\n  ${e.constructor.name}("${e.message}")\n  single-use is enforced on the grant id in the nonce ledger.\n  a revoked grant fails identically — the merchant cannot tell\n  “already spent” from “the subject withdrew consent”.`)),
   () => {
-    const handOn = attenuate(S.capSecret, S.agentGrant, { maxUnits: 1, maxAttempts: 1 },
+    S.handOn = attenuate(S.capSecret, S.agentGrant, { maxUnits: 1, maxAttempts: 1 },
       MERCHANT, { newId: crypto.randomUUID() });
-    return S.vault.resolve(handOn, COURIER).then(
+    return S.vault.resolve(S.handOn, COURIER).then(
       () => log(`\nturn 7 · a non-consented courier redeemed it — that is a bug`),
       (e) => {
-        log(`\nturn 7 · the merchant sub-delegates to a courier\n  the courier is a fully registered network participant, and the\n  grant it holds is validly narrowed. It still cannot redeem:\n    ${e.constructor.name}("${e.message}")\n\n  ATTENUATION NARROWS AUTHORITY; IT DOES NOT TRANSFER IT.\n  Redemption is bound to the actor the subject consented to.\n  A stolen grant is therefore not redeemable by an arbitrary\n  operator — but multi-hop delegation needs its own consent\n  event, and no forward-leg equivalent of createReturn() exists\n  yet. See spec §9.`);
-        $$("next").disabled = true;
+        log(`\nturn 7 · the merchant tries the shortcut: hand a narrowed grant\n  straight to a courier, no new consent event\n  the courier is a fully registered network participant, and the\n  grant it holds is validly narrowed. It still cannot redeem:\n    ${e.constructor.name}("${e.message}")\n\n  ATTENUATION NARROWS AUTHORITY; IT DOES NOT TRANSFER IT.\n  Redemption is bound to the actor the subject consented to,\n  not to whoever is holding a valid-looking token.\n  Next turn: the sanctioned way to actually delegate.`);
+        holdings(`${show(S.agentGrant)}`, `${show(S.handOn)}\n(narrowed, but not delegated —\n courier still refused)`, `address (sealed)\nkeys\nnonce ledger`);
       });
+  },
+  () => {
+    // subjectRef here is S.pid, not the vault-level subjectRef from turn 1 —
+    // Platform.delegateFulfilment checks ownership against consent.subject,
+    // which turn 2 set to the pairwise reference, matching how a real
+    // Platform.createGrant caller would pass an already-pairwise subjectRef.
+    S.delegated = S.platform.delegateFulfilment(S.agentGrant, COURIER, { maxUnits: 1, maxAttempts: 1 }, S.pid);
+    return S.vault.resolve(S.delegated, COURIER).then(({ routingCode }) => {
+      log(`\nturn 8 · this time, real delegation first\n  Platform.delegateFulfilment(agentGrant, "${COURIER}", ...)\n  mints a FRESH consent entry naming the courier as grantedTo —\n  the forward-leg counterpart of Platform.createReturn's reverse leg.\n  the courier redeems the delegated grant:\n  → routingCode ${routingCode}\n\n  Compare to turn 7: same courier, same narrowing — the only\n  difference is a real consent event. That difference is the\n  whole boundary between "holding a token" and "being authorised".`);
+      holdings(`${show(S.agentGrant)}\n(spent downstream)`, `delegated to courier:\n${show(S.delegated)}\n(redeemed)`, `address (sealed)\nnonce burned\naudit written`);
+      $$("next").disabled = true;
+    });
   },
 ];
 

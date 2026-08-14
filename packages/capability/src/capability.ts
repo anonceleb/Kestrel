@@ -40,11 +40,19 @@
  *      the consented one. The binding is subscriber-level and non-
  *      cryptographic — there is still no proof-of-possession, which is the
  *      separate carrier-identity gap — but it is not absent.
- *   2. A *limitation*: multi-hop delegation needs its own consent event.
- *      `Platform.createReturn` does exactly that for the reverse leg; no
- *      forward-leg equivalent exists yet. See spec §9.
+ *   2. A *limitation, now closed*: multi-hop delegation needs its own
+ *      consent event. `Platform.createReturn` does that for the reverse
+ *      leg; `Platform.delegateFulfilment` is the forward-leg equivalent —
+ *      a fresh consent entry naming the new carrier as `grantedTo`, so
+ *      that party (and only that party) can redeem what was delegated to
+ *      it. This is a considered decision, not a default: redemption stays
+ *      bound to `consent.grantedTo`, never to `caveats.fulfiller`, so the
+ *      *only* way a new party gains redemption rights is a real consent
+ *      event, never a caveat value a holder could set.
  *
- * The turn loop on `web/agentic-flow.html` demonstrates both, live.
+ * The turn loop on `web/agentic-flow.html` demonstrates all three, live —
+ * including the delegated-courier success alongside the un-delegated one's
+ * refusal, so the boundary between them is visible rather than asserted.
  */
 import { createHmac, randomUUID } from "node:crypto";
 import type { DeDiDirectoryPort } from "../../directory/src/directory.ts";

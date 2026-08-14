@@ -53,13 +53,13 @@ These are documented open problems, not undiscovered bugs. They are listed in
   Two related items were narrower bugs and are now fixed: a suspended participant could still
   redeem (`lookup()` didn't check `status`, though `Registry.verify()` already did), and
   `singleUse: false` was burned anyway, making the flag decorative. Both are pinned by tests.
-- **The redeeming actor is bound to the consent entry, not to `caveats.fulfiller`.** Today
-  `resolve()`'s `actor` must be the consented counterparty (`consent.grantedTo`); the grant's
-  own `fulfiller` field is never checked against it. Whether a network should bind redemption
-  to the fulfiller instead — or require both — is unresolved and interacts with the
-  attenuation/delegation limit above: making `fulfiller` authoritative could let a carrier
-  redeem directly rather than needing its own consent event, which is a real design trade-off,
-  not a bug.
+- **Decided, not open: the redeeming actor is bound to the consent entry, `grantedTo`, and never
+  to `caveats.fulfiller`.** This was previously listed as unresolved; it is settled.
+  `caveats.fulfiller` is informational only. A new party gains redemption rights exclusively
+  through `Platform.delegateFulfilment`, which mints a real consent event naming them — the
+  forward-leg counterpart of `Platform.createReturn`. This closes what was previously
+  documented as a limitation: forward delegation now has a mechanism, not just a reverse-leg
+  one. See `spec/CFP-v0.x.md` §7.1 and §9.
 - **In-memory state everywhere.** Registry, directory, nonce ledger and usage meter are
   in-process maps; single-use across more than one node is unsolved here.
 - **The erasure gate's counter-constraints are specification-only** (`spec/CFP-v0.x.md` §7.3).

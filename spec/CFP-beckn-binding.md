@@ -297,11 +297,22 @@ fulfilment.
 In the reference implementation, redemption requires the redeeming actor to
 be the party named in the grant's consent entry, so a carrier holding a
 validly narrowed token cannot redeem it without a consent event of its own.
-A network adopting this binding therefore needs to decide where that event
-is expressed — plausibly the carrier's own `confirm` against the same
-subject — and that decision is not settled here. Until it is, the honest
-scope of §6.2 is: the *wire shape* for a handed-on grant is unchanged, the
-*authority model* for handing one on is an open question. See §9 item 5.
+That much is no longer open in-process: `Platform.delegateFulfilment`
+(`services/platform/src/platform.ts`) mints exactly that consent event,
+naming the carrier as `grantedTo`, before re-keying the grant — the same
+mechanism `Platform.createReturn` already used for the reverse leg. A
+carrier holding a merely-narrowed, non-delegated token is still refused
+(spec `CFP-v0.x.md` §7.1 evidences both outcomes with a test each).
+
+**What remains open is only the wire question**, not the mechanism: where
+does a Beckn network express that consent event? Plausibly the carrier's
+own `confirm` against the same subject, carrying its own
+`Stop.authorization` naming the carrier's `subscriberId` as the redeeming
+party — but that is a proposal, not a decision, and this document does not
+settle it. Until it is, the scope here is: the *wire shape* for a handed-on
+token is unchanged (§6.2 above), and the reference implementation's
+in-process answer to *who may redeem it* is real and tested, but has no
+Beckn-message binding yet. See §9 item 5.
 
 ---
 
@@ -355,11 +366,13 @@ convention.
    implementation, not created by the binding but inherited by it.
 4. **Carrier binding.** Also open — nothing today cryptographically binds an
    attenuated grant to a specific physical carrier operative.
-5. **Forward-leg delegation.** Attenuation narrows authority but does not
-   transfer it — a carrier holding a validly narrowed grant cannot redeem it
-   without its own consent event. Where that event is expressed in Beckn
-   terms is unsettled, and it is the one open item bearing directly on this
-   binding rather than on the implementation beneath it.
+5. **Forward-leg delegation — mechanism closed in-process, wire binding still open.**
+   Attenuation narrows authority but does not transfer it, and that used to
+   be a dead end: a carrier holding a validly narrowed grant had no way to
+   gain redemption rights at all. `Platform.delegateFulfilment` closes that
+   in-process, mirroring `Platform.createReturn`'s reverse-leg consent
+   event. What's still unsettled is purely the Beckn-message question: where
+   a network expresses that consent event on the wire. See §6.2 above.
 6. **Vault discovery and cross-vault portability.** `fulfiller` names the
    operator; resolving that to a vault endpoint via the registry is designed
    but not implemented. Cross-vault grant portability — the

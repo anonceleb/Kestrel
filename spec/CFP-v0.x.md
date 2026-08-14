@@ -226,11 +226,15 @@ the original cross-border/multi-operator scoping error one level down. They
 are split here (D-7) into what is supported today against a single vault,
 and what is deferred to a federated deployment.
 
-### 7.1 Multi-operator handoff against one vault — supported today
+### 7.1 Multi-operator handoff against one vault — supported today, both directions
 
 A forward leg and a reverse leg run by two different legal entities against
-the *same* vault and consent ledger is expressible in shipped code now, not
-a future design. `Platform.createReturn` (`services/platform/src/platform.ts:312`)
+the *same* vault and consent ledger are both expressible in shipped code
+now, not a future design. Until this section was updated, only the reverse
+leg had a real implementation behind it — the paragraph below is corrected
+to say so rather than leave the earlier overclaim standing.
+
+**Reverse leg.** `Platform.createReturn` (`services/platform/src/platform.ts:312`)
 takes an `actorId` that is never checked against the forward leg's
 `grantedTo` — ownership is checked against the *subject* only. A return can
 therefore be routed to a carrier that never held the forward-leg grant,
@@ -240,6 +244,17 @@ grant's counterparty and asserts the new consent entry's `grantedTo`
 differs from the original
 (`tests/grant-core/exceptions.test.ts`, "multi-operator handoff against one
 vault").
+
+**Forward leg.** `Platform.delegateFulfilment` mints an equivalent consent
+entry naming a new carrier, then attenuates the parent grant under a fresh
+id — the mechanism `attenuate()`'s own docstring names as missing until
+this method existed. Redemption authority follows §3's decided rule:
+bound to `consent.grantedTo`, never to `caveats.fulfiller`, so a party gains
+redemption rights only through a real consent event, and never by a caveat
+value a holder could set. The property this preserves — a merely-narrowed
+grant handed to an undelegated third party still cannot redeem — is
+asserted alongside the delegated case, and turn 7/8 of `web/agentic-flow.html`
+demonstrates both outcomes in the same run.
 
 ### 7.2 Federated custody — deferred
 
@@ -414,13 +429,9 @@ list is worth more than a long defensive one:
   authorise. Closing this means `resolve()` accepting that intent as a new parameter, which
   changes the `RoutingPort` interface every adapter implements; that is an interface decision,
   not a bug fix, and is deliberately left open rather than made unilaterally.
-- **The redeeming actor is bound to `consent.grantedTo`, never to `caveats.fulfiller`
-  ("P0-5b").** A grant names a `fulfiller`, but redemption authorises whoever the subject
-  consented to (typically the merchant), and the two are never compared. Whether a network
-  should additionally require `actor === caveats.fulfiller` — letting a named carrier redeem
-  directly — or keep them independent is unresolved, and it interacts directly with the
-  forward-leg-delegation item above: making `fulfiller` authoritative is one way to close that
-  gap, but it is a trust-model choice, not a default to assume.
+- ~~The redeeming actor's binding~~ — **decided**, not open. See §7.1: redemption stays bound
+  to `consent.grantedTo`, never to `caveats.fulfiller`, and forward-leg delegation
+  (`Platform.delegateFulfilment`) is how a new party legitimately gains redemption rights.
 - **Depot-time resolution as a synchronous dependency.** Resolution is a
   once-per-parcel online event on operator infrastructure. In a deep-rural
   network the "depot" can be a low-connectivity branch office, not an urban

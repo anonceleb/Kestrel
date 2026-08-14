@@ -463,6 +463,74 @@ export class Platform {
   }
 
   /**
+   * The forward-leg delegation `createReturn()` names but doesn't build:
+   * hand a grant to a carrier who was never the original counterparty, with
+   * its own consent event naming that carrier as `grantedTo`.
+   *
+   * The gap this closes, precisely: attenuation narrows a grant's caveats
+   * with no round trip, but it does not — and per the decision behind this
+   * method, will not — change who may redeem it. `Vault.resolve` binds
+   * redemption to `consent.grantedTo`, never to `caveats.fulfiller` (spec
+   * §9, "the redeeming actor is bound to consent.grantedTo, never to
+   * caveats.fulfiller" — decided, not left open, as of this method).
+   * Turn 7 of `web/agentic-flow.html` demonstrates why that's a security
+   * property worth keeping: a courier holding a validly narrowed grant
+   * still can't redeem it, because narrowing a token is not the same act as
+   * authorising a new party to use it. `delegateFulfilment` is the
+   * sanctioned way to do the second thing — it costs the subject's
+   * standing authorization (checked below) and a fresh, auditable consent
+   * entry, exactly the price `createReturn` and `reattemptDelivery` already
+   * charge for their own leg changes.
+   *
+   * Purpose is preserved, not attenuated to something new — delegation is
+   * still whatever the parent grant's purpose was, so plain `attenuate()`
+   * does the narrowing, the same way `redirectDelivery` uses it. `narrower`
+   * is optional: a caller may have already narrowed the grant itself (the
+   * agent turn loop does, at turn 4, before ever reaching this call) and
+   * delegate the result unchanged — this method's job is minting the
+   * consent event and re-keying the grant so it's independently single-use,
+   * not forcing an additional narrowing step nobody asked for.
+   */
+  delegateFulfilment(
+    originatingCap: Capability,
+    toActorId: string,
+    narrower: Partial<Omit<Caveats, "purpose" | "pairwiseId" | "consentRef">>,
+    subjectRef: string,
+  ): Capability {
+    // [Gap fix — P0-2] Same guard as every other exception path: verify the
+    // parent before minting anything from it, or a caller holding a
+    // legitimate grant could pass back inflated caveats and receive a
+    // validly signed delegation exceeding what it was ever authorised to
+    // pass on.
+    verifyCap(this.#capSecret, originatingCap);
+
+    const original = this.#consent.find(originatingCap.caveats.consentRef);
+    if (!original) throw new UnknownCapability("no consent record for the originating grant");
+    if (original.subject !== subjectRef) {
+      throw new NotAuthorized(`capability ${originatingCap.id} does not belong to subject ${subjectRef}`);
+    }
+
+    const consent = this.#consent.append({
+      subject: original.subject,
+      grantedTo: toActorId,
+      purpose: originatingCap.caveats.purpose,
+      scope: ["delegated-fulfilment"],
+      at: Date.now(),
+      expiresAt: Math.min(originatingCap.caveats.expiresAt, original.expiresAt),
+    });
+
+    const delegatedCap = attenuate(
+      this.#capSecret,
+      originatingCap,
+      { ...narrower, consentRef: consent.ref },
+      toActorId,
+      { newId: randomUUID() },
+    );
+    this.#capabilityConsent.set(delegatedCap.id, consent.ref);
+    return delegatedCap;
+  }
+
+  /**
    * Refund without return: zero vault calls. Settlement is a Zone 2/billing
    * concern; nothing here calls Vault.resolve() or reads a confidential
    * record.

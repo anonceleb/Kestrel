@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CapabilityBurned,
+  CapabilityInvalid,
   AttenuationWidened,
   ReattemptsExhausted,
   attenuate,
@@ -332,4 +333,109 @@ test("P0-5c: a singleUse:false grant is still killed by consent revocation, not 
   h.platform.revoke(capability.id, "sub_1"); // revokes the shared consentRef
   const err = await h.vault.resolve(reusable, "counterparty.example").catch((e) => e);
   assert.ok(err instanceof CapabilityBurned, `expected CapabilityBurned, got ${err?.constructor?.name}`);
+});
+
+/* ------------------------------------------------------- forward delegation */
+
+test("delegateFulfilment: a legitimately delegated carrier can redeem — the sanctioned path turn 7 of the demo names", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const k = newKeyPair();
+  const courier = {
+    subscriberId: "courier.example", role: "operator" as const, keyId: "k1",
+    publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(courier, h.authFor(registerOp(courier)));
+
+  const delegated = h.platform.delegateFulfilment(capability, "courier.example", { maxUnits: 1 }, "sub_1");
+  const ok = await h.vault.resolve(delegated, "courier.example");
+  assert.match(ok.routingCode, /./);
+});
+
+test("delegateFulfilment: without it, mere attenuation still does not authorise a new redeemer", async () => {
+  // The regression this suite protects: delegateFulfilment must be the ONLY
+  // way a new party gains redemption rights. A caller narrowing a grant
+  // through plain attenuate() and handing it to someone else — the exact
+  // shortcut turn 7 tries and fails — must still be refused.
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const k = newKeyPair();
+  const courier = {
+    subscriberId: "courier2.example", role: "operator" as const, keyId: "k1",
+    publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(courier, h.authFor(registerOp(courier)));
+
+  const { attenuate } = await import("../../packages/capability/src/capability.ts");
+  const merelyNarrowed = attenuate(h.capSecret, capability, { maxUnits: 1 }, "counterparty.example", {
+    newId: randomUUID(),
+  });
+  const err = await h.vault.resolve(merelyNarrowed, "courier2.example").catch((e) => e);
+  assert.ok(err instanceof CapabilityBurned, `expected refusal, got ${err?.constructor?.name}`);
+});
+
+test("delegateFulfilment: the delegated grant can never exceed the parent — attenuate()'s narrowing guard still applies", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const k = newKeyPair();
+  const courier = {
+    subscriberId: "courier3.example", role: "operator" as const, keyId: "k1",
+    publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(courier, h.authFor(registerOp(courier)));
+
+  assert.throws(
+    () => h.platform.delegateFulfilment(capability, "courier3.example", { maxUnits: 999 }, "sub_1"),
+    AttenuationWidened,
+  );
+});
+
+test("delegateFulfilment: an empty narrower is fine — the point of the call is the consent event and the new id, not forced narrowing", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const k = newKeyPair();
+  const courier = {
+    subscriberId: "courier4.example", role: "operator" as const, keyId: "k1",
+    publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(courier, h.authFor(registerOp(courier)));
+
+  const delegated = h.platform.delegateFulfilment(capability, "courier4.example", {}, "sub_1");
+  assert.equal(delegated.caveats.maxUnits, capability.caveats.maxUnits);
+  assert.notEqual(delegated.id, capability.id, "a delegated grant is independently single-use");
+  const entry = h.consent.find(delegated.caveats.consentRef);
+  assert.equal(entry?.grantedTo, "courier4.example");
+  assert.notEqual(entry?.consentRef, capability.caveats.consentRef);
+});
+
+test("delegateFulfilment: ownership-checked — a stranger subjectRef cannot delegate someone else's capability", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  assert.throws(
+    () => h.platform.delegateFulfilment(capability, "courier5.example", {}, "not-the-real-subject"),
+    NotAuthorized,
+  );
+});
+
+test("delegateFulfilment: a forged parent is rejected — P0-2's guard covers this path too", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const forged = { ...capability, caveats: { ...capability.caveats, maxUnits: 9999 } };
+  assert.throws(
+    () => h.platform.delegateFulfilment(forged as any, "courier6.example", {}, "sub_1"),
+    CapabilityInvalid,
+  );
+});
+
+test("delegateFulfilment: purpose is carried over unchanged, not attenuated to something new", async () => {
+  const h = harness();
+  const { capability } = await grantOnce(h);
+  const k = newKeyPair();
+  const courier = {
+    subscriberId: "courier7.example", role: "operator" as const, keyId: "k1",
+    publicKey: k.publicKey, tier: 2 as const, status: "active" as const,
+  };
+  h.registry.register(courier, h.authFor(registerOp(courier)));
+  const delegated = h.platform.delegateFulfilment(capability, "courier7.example", {}, "sub_1");
+  assert.equal(delegated.caveats.purpose, capability.caveats.purpose);
 });
