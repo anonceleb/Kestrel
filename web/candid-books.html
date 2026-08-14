@@ -197,6 +197,15 @@ proof-of-possession, which is the separate carrier-identity gap — but it is no
 so merchant-to-carrier handoff currently needs a round trip the attenuation story implied it did
 not. Named in <a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec §9</a>.</p>
 
+<h3>packages/sdk is the intended integrator surface and is untested <span class="st open">— open</span></h3>
+<p><code>packages/sdk</code> is described elsewhere as the integrator-facing surface. It is not
+published to any registry, declares no package exports, and has <b>zero tests</b> —
+<code>tests/README.md</code> says so and this page previously did not, which is the wrong way round
+for a page whose job is the open list. <code>FulfilmentClient</code> is an in-process wrapper over
+<code>Platform</code> and still takes a <code>subjectRef</code>, which a merchant-side SDK should
+not need; <code>isVerifiedHuman</code> is <code>assurance.length &gt; 0</code>. Treat the SDK as a
+shape proposal, not a shipped client.</p>
+
 <h3>Gap #5's convention is not yet a construction <span class="st open">— open</span></h3>
 <p>See item 5 above: <code>Platform.createGrant</code> accepts any string as <code>subjectRef</code>
 today. The ledger enforces pairwise separation once a value is stored, but nothing stops a caller

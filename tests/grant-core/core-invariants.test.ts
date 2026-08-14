@@ -16,7 +16,9 @@ import { AuditPrecondition } from "../../services/vault/src/vault.ts";
 import { MerchantDatabase } from "../../services/platform/src/platform.ts";
 import { harness, grantOnce, type NeutralPayload } from "./harness.ts";
 
-const PII_SHAPED = /address|line1|street|postcode|phone|email|fullname|nationalid/i;
+// Widened: the old pattern would have passed a column literally named
+// `location`, `gps` or `digipin`, which is exactly the leak it exists to catch.
+const PII_SHAPED = /address|line1|line2|street|postcode|postalcode|locality|placename|location|gps|digipin|geocode|latitude|longitude|phone|msisdn|e164|email|fullname|firstname|lastname|nationalid|contact|person/i;
 
 test("INV-1: no counterparty-held record may contain an address-shaped field", async () => {
   const h = harness();
@@ -93,13 +95,13 @@ test("INV-4b: Vault exposes no decryption path other than resolve()", () => {
   }
 });
 
-test("INV-7: no cohort below k=25 is ever exposed to a brand", () => {
+test("INV-7: cohortSize() clamps any cohort below k=25 to zero (unit-level; the exposure path is INV-12)", () => {
   assert.equal(cohortSize(3), 0);
   assert.equal(cohortSize(24), 0);
   assert.equal(cohortSize(K_ANON_FLOOR), K_ANON_FLOOR);
 });
 
-test("INV-8: adapters are removable — core has no adapter dependency", async () => {
+test("INV-8: core imports resolve with no adapter present — full adapter purity is enforced by privacy-lint check 1, not here", async () => {
   const core = await import("../../packages/core/src/core.ts");
   assert.ok(typeof core.cohortSize === "function");
   assert.ok(typeof core.ConsentLedger === "function");
@@ -137,7 +139,7 @@ test("INV-11: attenuation may narrow a grant but never widen it", () => {
   assert.throws(() => attenuate(secret, cap, { purpose: "return" }, "agent-7"), AttenuationWidened);
 });
 
-test("INV-12: co-residents cannot enumerate each other through a shared record (Posten)", () => {
+test("INV-12: visibleCoResidents() never reveals a barriered co-resident (unit-level, hand-built rows — no vault in the loop)", () => {
   const rows = [
     { cohortRecordId: "rec_1", subjectRef: "sub_1", barrier: false },
     { cohortRecordId: "rec_1", subjectRef: "sub_2", barrier: false },

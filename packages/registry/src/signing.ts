@@ -169,6 +169,24 @@ function signingString(e: Omit<SignedEnvelope, "signature">): string {
   return `(created): ${e.created}\n(expires): ${e.expires}\ndigest: BLAKE-512=${e.digest}`;
 }
 
+/**
+ * The exact `Authorization` header value Beckn puts on the wire.
+ *
+ * [Gap fix] INV-34 used to assemble this string inside the test, which meant
+ * the invariant proved the *test* could build Beckn's keyId shape, not that
+ * this package emits it. The composite lives here now, so the wire format is
+ * a shipped artifact with a test pointed at it rather than the other way
+ * round. `SignedEnvelope` keeps `subscriberId` and `keyId` as separate
+ * fields because that is what verification needs; this is the projection.
+ */
+export function authorizationHeader(e: SignedEnvelope): string {
+  return (
+    `Signature keyId="${e.subscriberId}|${e.keyId}|ed25519",algorithm="ed25519",` +
+    `created=${e.created},expires=${e.expires},headers="(created) (expires) digest",` +
+    `signature="${e.signature}"`
+  );
+}
+
 export function signRequest(
   subscriberId: string,
   keyId: string,

@@ -8,10 +8,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { Registry, newKeyPair, signRequest, digestOf, canonical, SignatureInvalid, registerOp } from "../../packages/registry/src/signing.ts";
+import { Registry, newKeyPair, signRequest, digestOf, canonical, SignatureInvalid, registerOp, authorizationHeader } from "../../packages/registry/src/signing.ts";
 import { genesisRegistry } from "./harness.ts";
 
-test("INV-34: envelope keyId is {subscriberId}|{keyId}|ed25519-shaped", () => {
+test("INV-34: the emitted Authorization header carries Beckn's {subscriberId}|{keyId}|ed25519 composite", () => {
   const { registry, authFor } = genesisRegistry();
   const mk = newKeyPair();
   const body = { subscriberId: "merchant.example", role: "merchant" as const, keyId: "k1", publicKey: mk.publicKey, tier: 2 as const, status: "active" as const };
@@ -22,9 +22,13 @@ test("INV-34: envelope keyId is {subscriberId}|{keyId}|ed25519-shaped", () => {
 
   assert.equal(env.subscriberId, "merchant.example");
   assert.equal(env.keyId, "k1");
-  // The wire-level keyId Beckn actually puts in the Signature header.
-  const wireKeyId = `${env.subscriberId}|${env.keyId}|ed25519`;
-  assert.equal(wireKeyId, "merchant.example|k1|ed25519");
+  // Assert the header this package EMITS, not one the test assembles: the
+  // composite keyId is produced by authorizationHeader(), so this invariant
+  // is about the shipped wire format rather than about the test's own string.
+  const header = authorizationHeader(env);
+  assert.match(header, /^Signature keyId="merchant\.example\|k1\|ed25519",algorithm="ed25519",/);
+  assert.match(header, /headers="\(created\) \(expires\) digest"/);
+  assert.ok(header.includes(`created=${env.created}`) && header.includes(`expires=${env.expires}`));
 
   // A registry that only knows this envelope's fields must be able to verify it.
   registry.verify(env, req);

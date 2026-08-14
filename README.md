@@ -62,8 +62,10 @@ cd web && python3 -m http.server 8741   # then open http://localhost:8741 — th
   digests byte-for-byte, ChaCha20-Poly1305 in both directions, and Ed25519
   cross-verification — and refuses to emit on any mismatch. The result: the
   attack console throws the real error classes from the real `Vault`, the
-  address page mints real Beckn-signed envelopes and COSE_Sign1 labels
-  client-side, and `web/assets/js/manifest.json` records the SHA-256 of the
+  address page mints real envelopes in Beckn's subscriber-signing format
+  (not Beckn *messages* — there is no `Stop.authorization` or
+  `Fulfillment.tags` emitter; see `spec/CFP-beckn-binding.md`) and COSE_Sign1
+  labels client-side, and `web/assets/js/manifest.json` records the SHA-256 of the
   source behind every emitted module, so "the demo runs the donated code" is
   checkable, not asserted.
 
@@ -97,7 +99,9 @@ packages/
   network/     Beckn-shaped async request/callback pairs (action/on_action)
   metering/    per-participant metered API quota
   webhooks/    signed HTTP delivery — HMAC-SHA256, fetch(), bounded retry
-  sdk/         the published integrator-facing surface — FulfilmentClient, GrantResult
+  sdk/         the intended integrator-facing surface — FulfilmentClient, GrantResult.
+               Not published to any registry, no package exports, and currently
+               untested; see tests/README.md and web/candid-books.html
   core/        domain, consent ledger, ports — imports NOTHING from adapters or services
 services/
   vault/       ZONE 1 — the only decryption path; pairwise-ID issuance lives here, not Platform

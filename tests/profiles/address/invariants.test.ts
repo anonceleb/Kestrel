@@ -20,7 +20,9 @@ import { DIGIPIN_LADDER, FlatDensity } from "../../../profiles/address/src/preci
 import { geoBucketFor as indiaGeoBucketFor } from "../../../adapters/india-post/src/adapter.ts";
 import { addressHarness, grantOnce } from "./harness.ts";
 
-const PII_SHAPED = /address|line1|street|postcode|phone|email|fullname|nationalid/i;
+// Widened: the old pattern would have passed a column literally named
+// `location`, `gps` or `digipin`, which is exactly the leak it exists to catch.
+const PII_SHAPED = /address|line1|line2|street|postcode|postalcode|locality|placename|location|gps|digipin|geocode|latitude|longitude|phone|msisdn|e164|email|fullname|firstname|lastname|nationalid|contact|person/i;
 
 test("INV-1 (address profile): no counterparty-held record may contain an address-shaped field", async () => {
   const h = addressHarness();
@@ -41,12 +43,12 @@ test("INV-2 (address profile): grant tokens carry no plaintext address under any
   }
 });
 
-test("INV-7 (address profile): no cohort below k=25 is ever exposed", () => {
+test("INV-7 (address profile): cohortSize() clamps below k=25", () => {
   assert.equal(cohortSize(3), 0);
   assert.equal(cohortSize(K_ANON_FLOOR), K_ANON_FLOOR);
 });
 
-test("INV-12 (address profile): co-residents cannot enumerate each other through a shared address", () => {
+test("INV-12 (address profile): visibleCoResidents() hides barriered co-residents", () => {
   const rows = [
     { cohortRecordId: "rec_1", subjectRef: "sub_1", barrier: false },
     { cohortRecordId: "rec_1", subjectRef: "sub_2", barrier: false },

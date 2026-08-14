@@ -83,7 +83,8 @@ npm run build:web  <span class="dim"># regenerates web/assets/js — refuses to 
         <td>ACP checkout as shipped (plaintext <code>fulfillment_address</code> next to tokenized
         payment) vs. the same request carrying a grant. The asymmetry is structural.</td></tr>
     <tr><td><a href="./profile-address.html">profile-address</a></td>
-        <td>The full pipeline, in-browser: Beckn-signed registry writes, ChaCha20-Poly1305 vault
+        <td>The full pipeline, in-browser: registry writes signed in Beckn's subscriber-signing
+        format, ChaCha20-Poly1305 vault
         records, DIGIPIN-bucketed routing, COSE_Sign1 offline labels, audited resolve,
         crypto-shredding.</td></tr>
     <tr><td><a href="./profile-contact.html">profile-contact</a></td>
@@ -93,8 +94,10 @@ npm run build:web  <span class="dim"># regenerates web/assets/js — refuses to 
         <td>Eight attacks against the live objects on the page. Each fails with the real error
         class, cross-referenced to the Node test that pins it.</td></tr>
     <tr><td><a href="./candid-books.html">candid-books</a></td>
-        <td>Five threat-model gaps closed (with the tests that prove it), three still open, and
-        the twelve-month stewardship hand-over clause, verbatim.</td></tr>
+        <td>The threat-model gaps that closed, each with the test that pins it; every open
+        problem stated at the same prominence; and the twelve-month stewardship hand-over
+        clause, verbatim. The open list is the authoritative one — it is longer than the
+        closed list, and deliberately so.</td></tr>
     <tr><td><a href="https://github.com/anonceleb/Kestrel/blob/main/spec/CFP-v0.x.md">spec/CFP-v0.x.md</a></td>
         <td>The pilot-scoped interface note. Submitted nowhere.</td></tr>
   </table>

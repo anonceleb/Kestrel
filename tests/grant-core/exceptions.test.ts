@@ -25,7 +25,7 @@ test("INV-14: a return grant may never exceed the originating grant's scope", as
   assert.ok(returnCap.caveats.expiresAt <= capability.caveats.expiresAt);
 });
 
-test("INV-15: a failed-delivery notification reaches the consumer, never the merchant — restored, previously dropped without replacement", async () => {
+test("INV-15: failed-delivery notification goes to the subject through the NotificationPort — Vault holds no counterparty id to notify", async () => {
   const h = harness();
   const { capability } = await grantOnce(h);
   const notified: Array<{ subjectRef: string; event: string }> = [];

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T16:56:34.655Z",
+  "generatedAt": "2026-08-14T17:14:54.268Z",
   "selftestChecks": 63,
   "note": "Each emitted module is the named repo source with types stripped and import specifiers rewritten. node-crypto.js is the browser shim, verified against node:crypto by tools/web-build/build.ts before emit.",
   "files": [
@@ -61,7 +61,7 @@
     {
       "source": "packages/registry/src/signing.ts",
       "emitted": "web/assets/js/packages/registry/src/signing.js",
-      "sourceSha256": "6fbcedfbfbf0033f7764ea9d3cf9f8ce9cf7a22c809d19ccf1a1c380ef6ff6a8"
+      "sourceSha256": "950e92eb3e38efea9413bb746d5e781f752ffcf0d97cdb686e1cee728c6f7279"
     },
     {
       "source": "packages/sdk/src/client.ts",

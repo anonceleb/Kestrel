@@ -200,7 +200,7 @@ test("privacy-lint check 4 catches all four evasions of the old exact-match, new
   }
 });
 
-test("INV-32: pairwise-ID issuance is unreachable from Platform's public surface", () => {
+test("INV-32: no method name on Platform's surface issues pairwise IDs — the RootSecret type never reaches Zone 2 (name-level; types are stripped at runtime)", () => {
   const proto = Platform.prototype as unknown as Record<string, unknown>;
   assert.equal("issueS2ID" in proto, false);
   assert.equal("issuePairwiseId" in proto, false);
