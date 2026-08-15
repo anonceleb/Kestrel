@@ -43,7 +43,7 @@ Stated here rather than left for a reader to discover.
 *   **Key custody is single-custodian.** `Kms` has no m-of-n split, and in this repository the root key is in-process rather than in an HSM.
 *   **State is in-memory.** The registry, directory, nonce ledger and usage meter are in-process maps. Single-use enforcement across more than one node is an unsolved distributed problem here, not a solved one.
 *   **The geographic k-floor depends on a density figure the deployment supplies.** The only implementation shipped is a flat value; see `spec/CFP-v0.x.md` §6a.
-*   **Further open problems** — offline double-redemption, carrier-identity binding, forward-leg delegation, vault federation — are listed in `spec/CFP-v0.x.md` §9 and on `web/candid-books.html`, with the same prominence as what is closed.
+*   **Further open problems** — offline double-redemption, carrier-identity binding, `maxUnits`/`channelKind` unenforced at redemption, vault federation — are listed in `spec/CFP-v0.x.md` §9 and on `web/candid-books.html`, with the same prominence as what is closed. (Forward-leg delegation was on this list; `Platform.delegateFulfilment` closed it — see spec §7.1.)
 
 ## 4. What we collect
 
