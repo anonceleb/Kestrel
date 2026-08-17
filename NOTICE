@@ -14,12 +14,3 @@ SECURITY.md and CODE_OF_CONDUCT.md. Everything else belongs in a public
 issue. No email address is published: this is a two-person project ahead of
 LLP incorporation, and a private GitHub channel reaches both maintainers
 without depending on a personal inbox that will change.
-
-Lineage: this codebase originates from an earlier internal prototype as a
-company-operated confidential-address-vault product. That approach was
-abandoned — a company-operated address vault does not survive sovereignty,
-adoption-physics, or governance review — in favor of donating a generic,
-purpose-agnostic capability-grant primitive (this repository) as a protocol
-contribution instead. Product-specific naming was removed from the code and
-history because it named a discontinued product, not to obscure the project's
-origin; this NOTICE exists so that distinction is never left to inference.
